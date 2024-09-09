@@ -1,4 +1,5 @@
 import ImageUpload from "@/components/ImageUpload";
+import PromptPlaceholder from "@/components/PromptPlaceholder";
 import Image from "next/image";
 
 export default function Home() {
