@@ -4,7 +4,7 @@ import { ChangeEvent, MouseEventHandler, useRef, useState } from 'react';
 import PromptPlaceholder from './PromptPlaceholder';
 import getConfig from 'next/config';
 
-const APP_URL = 'http://localhost:5000'
+const APP_URL = process.env.api_URL;
 
 export default function ImageUpload() {
     const [image, setImage] = useState(File.prototype);
@@ -37,7 +37,7 @@ export default function ImageUpload() {
         formData.append('image', image);
 
         try {
-            const response = await fetch(APP_URL + '/api/upload_image', {
+            const response = await fetch(process.env.api_URL + '/api/upload_image', {
                 method: 'POST',
                 body: formData,
             });
@@ -45,7 +45,7 @@ export default function ImageUpload() {
             const result = await response.json();
             if (response.ok) {
                 setMessage('File uploaded successfully!');
-                setImageSrc(APP_URL + result.file_path);
+                setImageSrc(process.env.api_URL + result.file_path);
             } 
             else {
                 setMessage(result.error || 'Error uploading file');
