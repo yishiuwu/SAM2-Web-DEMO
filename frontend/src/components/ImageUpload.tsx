@@ -7,7 +7,7 @@ import getConfig from 'next/config';
 const APP_URL = process.env.api_URL;
 
 export default function ImageUpload() {
-    const [image, setImage] = useState(File.prototype);
+    // const [image, setImage] = useState(File.prototype);
     const [imageSrc, setImageSrc] = useState('');
     const [message, setMessage] = useState('');
     const [prompt, setPrompt] = useState('');
@@ -23,11 +23,12 @@ export default function ImageUpload() {
     const handleFileChange = (e:ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.item(0);
         if (file) {
-            setImage(file);
+            // setImage(file);
+            handleUpload(file);
         }
     };
 
-    const handleUpload = async () => {
+    const handleUpload = async (image:File) => {
         if (!image) {
             setMessage('Please select a file.');
             return;
@@ -101,7 +102,6 @@ export default function ImageUpload() {
                 // ref={hiddenFileInput} 
                 // style={{display:'none'}} 
             />
-            <button onClick={handleUpload}>Upload</button>
             {imageSrc &&
                 (<>
                 <img src={imageSrc} width={300} height={300}/>

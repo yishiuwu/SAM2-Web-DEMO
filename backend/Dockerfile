@@ -5,8 +5,9 @@
 # https://docs.docker.com/go/dockerfile-reference/
 ARG PERSONAL=0
 ARG PYTHON_VERSION=3.10
-FROM nvcr.io/nvidia/pytorch:22.12-py3 as base
+# FROM nvcr.io/nvidia/pytorch:22.12-py3 as base
 # FROM pytorch/pytorch:2.4.0-cuda11.8-cudnn9-devel
+FROM pytorch/pytorch:2.4.1-cuda11.8-cudnn9-runtime
 
 ENV HOST docker
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
@@ -37,7 +38,7 @@ RUN pip install pytest matplotlib jupyter ipython ipdb gpustat scikit-learn spac
 # hydra
 RUN pip install hydra-core==1.3.1 hydra-colorlog==1.2.0 hydra-optuna-sweeper==1.2.0 pyrootutils rich
 # Core packages
-RUN pip install transformers==4.25.1 datasets==2.8.0 pytorch-lightning==1.8.6 triton==2.0.0.dev20221202 wandb==0.13.7 timm==0.6.12 torchmetrics==0.10.3
+RUN pip install transformers==4.25.1 datasets==2.8.0 pytorch-lightning==1.8.6 triton==2.0.0 wandb==0.13.7 timm==0.6.12 torchmetrics==0.10.3
 # torchmetrics 0.11.0 broke hydra's instantiate
 
 # For MLPerf
