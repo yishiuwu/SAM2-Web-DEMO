@@ -4,10 +4,10 @@
 # If you need more help, visit the Dockerfile reference guide at
 # https://docs.docker.com/go/dockerfile-reference/
 ARG PERSONAL=0
-ARG PYTHON_VERSION=3.10
+ARG PYTHON_VERSION=3.11
 # FROM nvcr.io/nvidia/pytorch:22.12-py3 as base
 # FROM pytorch/pytorch:2.4.0-cuda11.8-cudnn9-devel
-FROM pytorch/pytorch:2.4.1-cuda11.8-cudnn9-runtime
+FROM pytorch/pytorch:2.4.1-cuda11.8-cudnn9-devel as base
 
 ENV HOST docker
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
@@ -31,7 +31,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     zsh stow subversion fasd \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip uninstall -y xgboost && DS_BUILD_UTILS=1 DS_BUILD_FUSED_LAMB=1 pip install deepspeed==0.7.7
+# RUN pip uninstall -y xgboost && DS_BUILD_UTILS=1 DS_BUILD_FUSED_LAMB=1 pip install deepspeed==0.7.7
 # twine to upload package to PyPI
 RUN pip install pytest matplotlib jupyter ipython ipdb gpustat scikit-learn spacy munch einops opt_einsum fvcore gsutil cmake pykeops zstandard psutil h5py twine gdown \
     && python -m spacy download en_core_web_sm
