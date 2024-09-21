@@ -4,12 +4,12 @@ import { ChangeEvent, MouseEventHandler, useRef, useState } from 'react';
 import PromptPlaceholder from './PromptPlaceholder';
 import getConfig from 'next/config';
 
-const APP_URL = process.env.api_URL;
+const APP_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default function ImageUpload() {
     // const [image, setImage] = useState(File.prototype);
     const [imageSrc, setImageSrc] = useState('');
-    const [message, setMessage] = useState('');
+    // const [message, setMessage] = useState('');
     const [prompt, setPrompt] = useState('');
 
     // const hiddenFileInput = useRef(InputEvent);
@@ -30,7 +30,7 @@ export default function ImageUpload() {
 
     const handleUpload = async (image:File) => {
         if (!image) {
-            setMessage('Please select a file.');
+            console.log('No file selected.');
             return;
         }
         
@@ -38,22 +38,26 @@ export default function ImageUpload() {
         formData.append('image', image);
 
         try {
-            const response = await fetch(process.env.api_URL + '/api/upload_image', {
+            const response = await fetch(APP_URL + '/api/upload_image', {
                 method: 'POST',
                 body: formData,
+                // headers: {
+                //         'Content-Type': 'application/json',
+                //     }
             });
 
             const result = await response.json();
             if (response.ok) {
-                setMessage('File uploaded successfully!');
-                setImageSrc(process.env.api_URL + result.file_path);
+                console.log('File uploaded successfully!');
+                setImageSrc(APP_URL + result.file_path);
             } 
             else {
-                setMessage(result.error || 'Error uploading file');
+                console.log(result.error || 'Error uploading file');
             }
         } catch (error) {
             console.log(error);
-            setMessage('Error connecting to the server');
+            console.log(`Error connecting to the server: ${APP_URL}`);
+            // console.log('Error connecting to the server');
         }
     };
 

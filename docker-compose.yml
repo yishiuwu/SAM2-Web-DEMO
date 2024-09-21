@@ -1,4 +1,4 @@
-version: '3'
+# version: '3'
 services:
   frontend:
     build:
@@ -6,10 +6,13 @@ services:
       dockerfile: Dockerfile
     ports:
       - "3000:3000"
+      - "80:80"
     depends_on:
       - backend
     environment:
-      - NEXT_PUBLIC_API_URL=http://backend:5000  # Point frontend to the backend container
+      - NEXT_PUBLIC_API_URL=http://127.0.0.1:5000  # Point frontend to the backend container
+    networks:
+      - app-network
 
   backend:
     build:
@@ -21,3 +24,12 @@ services:
       - ./backend:/app
     environment:
       - FLASK_ENV=development
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  backend:

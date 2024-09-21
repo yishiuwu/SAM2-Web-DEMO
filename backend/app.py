@@ -1,9 +1,10 @@
 from flask import Flask, request, jsonify, send_from_directory
-from flask_cors import CORS
+from flask_cors import CORS, cross_origin
 import os
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS to allow requests from Next.js
+# CORS(app)  # Enable CORS to allow requests from Next.js
+CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 # Create a directory to save images
 UPLOAD_FOLDER = '/uploads'
@@ -12,19 +13,22 @@ if not os.path.exists(UPLOAD_FOLDER):
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-@app.route('/api/upload_image', methods=['POST'])
+@app.route('/api/upload_image', methods=['POST', 'GET'])
+# @cross_origin(origin='http://localhost:3000')
 def upload_image():
-    if 'image' not in request.files:
-        return jsonify({'error': 'No file part'}), 400
-    file = request.files['image']
+    if request.method == 'POST':
+        if 'image' not in request.files:
+            return jsonify({'error': 'No file part'}), 400
+        file = request.files['image']
 
-    if file.filename == '':
-        return jsonify({'error': 'No selected file'}), 400
+        if file.filename == '':
+            return jsonify({'error': 'No selected file'}), 400
 
-    if file:
-        file_path = os.path.join(UPLOAD_FOLDER, file.filename)
-        file.save(file_path)
-        return jsonify({'message': 'File successfully uploaded', 'file_path': file_path})
+        if file:
+            file_path = os.path.join(UPLOAD_FOLDER, file.filename)
+            file.save(file_path)
+            return jsonify({'message': 'File successfully uploaded', 'file_path': file_path})
+    return '<h1>/api/upload_image access seccess</h1>'
     
 # operation when receive text prompt
 @app.route('/api/prompt', methods=['POST'])
@@ -44,4 +48,4 @@ def serve_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)
