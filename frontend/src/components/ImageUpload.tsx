@@ -41,6 +41,7 @@ export default function ImageUpload() {
             const response = await fetch(APP_URL + '/api/upload_image', {
                 method: 'POST',
                 body: formData,
+                credentials: 'include',
                 // headers: {
                 //         'Content-Type': 'application/json',
                 //     }

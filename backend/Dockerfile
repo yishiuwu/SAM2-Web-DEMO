@@ -29,6 +29,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     zip \
     unzip \
     zsh stow subversion fasd \
+    redis-server \
     && rm -rf /var/lib/apt/lists/*
 
 # RUN pip uninstall -y xgboost && DS_BUILD_UTILS=1 DS_BUILD_FUSED_LAMB=1 pip install deepspeed==0.7.7
@@ -43,6 +44,9 @@ RUN pip install transformers==4.25.1 datasets==2.8.0 pytorch-lightning==1.8.6 tr
 
 # For MLPerf
 RUN pip install git+https://github.com/mlcommons/logging.git@2.1.0
+
+# install autodistill grounded sam 2 (sam 2 extension)
+RUN pip install autodistill-grounded-sam-2
 
 # Install FlashAttention
 RUN pip install flash-attn==2.6.3
@@ -86,5 +90,7 @@ COPY . .
 EXPOSE 5000
 
 # Run the application.
+# RUN python -c 'import secrets; print(secrets.token_hex())'
+# ENV SECRET_KEY=8A8237E9BFD0C90128
 
-CMD python3 app.py
+CMD service redis-server start && python3 app.py

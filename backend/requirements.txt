@@ -1,3 +1,6 @@
-flask
+flask==2.3.3
 flask-cors
+# flask_socketio
+flask-session==0.5.0
+redis==5.0.1
 # flash-attn==2.6.3
