@@ -27,7 +27,8 @@ services:
       - FLASK_ENV=development
     networks:
       - app-network
-
+  redis:
+    image: "redis:alpine"
 networks:
   app-network:
     driver: bridge

@@ -1,8 +1,7 @@
 from flask import Flask, request, jsonify, send_from_directory, session
 from flask_cors import CORS, cross_origin
-from flask_session import Session
 # from flask_socketio import SocketIO
-import redis
+from flask_redis import FlaskRedis
 import os
 
 app = Flask(__name__)
@@ -19,7 +18,7 @@ print(f"secret key is: {app.secret_key}")
 app.config['SESSION_TYPE'] = 'redis'
 app.config['SESSION_PERMANENT'] = False
 app.config['SESSION_USE_SIGNER'] = True
-app.config['SESSION_REDIS'] = redis.from_url('redis://127.0.0.1:6379')
+app.config['REDIS_URL'] = 'redis://127.0.0.1:6379'
 
 
 # Create a directory to save images
@@ -33,9 +32,11 @@ app.config.from_object(__name__)
 # socketio = SocketIO(app, cors_allowed_origins='*')
 # CORS(app)  # Enable CORS to allow requests from Next.js
 CORS(app, resources={r"/api/*": {"origins": "*", "supports_credentials": True}})
+redis = FlaskRedis(app)
+redis.set('test', 0)
 
 # Create and initialize the Flask-Session object AFTER `app` has been configured
-server_session = Session(app)
+# server_session = Session(app)
 
 @app.route('/api/upload_image', methods=['POST', 'GET'])
 # @cross_origin(origin='http://localhost:3000', supports_credentials= True)
@@ -56,7 +57,9 @@ def upload_image():
     # session['test'] = "test session success!"
     # print(server_session.)
     if request.method == 'GET':
-        return f'<h1>/api/upload_image access seccess</h1>'
+        redis.incr('test')
+        return f'<h1>/api/upload_image access seccess</h1>\
+            <p>redis test: {redis.get("test")}</p>'
     
 # operation when receive text prompt
 @app.route('/api/prompt', methods=['POST'])
