@@ -3,12 +3,13 @@ import { Input } from 'postcss';
 import { ChangeEvent, MouseEventHandler, useRef, useState } from 'react';
 import PromptPlaceholder from './PromptPlaceholder';
 import getConfig from 'next/config';
-import ImageEditor from './ImageEditor';
-import UploadFileButton from './UploadFileButton';
 
 const APP_URL = process.env.NEXT_PUBLIC_API_URL;
+interface IEProps {
+    imgUrl: string;
+}
 
-export default function ImageUpload() {
+export default function ImageEditor(props:IEProps) {
     // const [image, setImage] = useState(File.prototype);
     const [imageSrc, setImageSrc] = useState('');
     // const [message, setMessage] = useState('');
@@ -99,41 +100,18 @@ export default function ImageUpload() {
     };
 
     return (
-        <div>
-            {!imageSrc &&
-                (<UploadFileButton handleFileChange={handleFileChange} />)
-            }
-
-            {imageSrc &&
-                (<div className='grid grid-cols-4 h-screen'>
-                    <div className='col-span-3 flex flex-col'>
-                        <div className='h-[75vh] flex justify-center items-center mb-4'>
-                            <img src={imageSrc} className='max-h-full max-w-full object-contain p-2'/>
-                        </div>
-                        <div className='flex flex-row h-20 p-4'>
-                            <input className='flex-auto mr-4 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500'
-                                type='text' placeholder='target item, e.g. cloth' onChange={handleTextChange} />
-                            <div className='flex flex-col w-20 p-2'>
-                                <div>
-                                    <button className='text-white bg-gradient-to-r from-green-600 to-green-700 hover:bg-gradient-to-bl font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2' 
-                                    onClick={handlePrompt}>Send Prompt</button>
-                                </div>
-                                <UploadFileButton handleFileChange={handleFileChange} />
-                            </div>
-                        </div>
-                    </div>
-                    <div className='flex flex-col col-span-1 bg-gray-200 dark:bg-gray-800 ml-3'>
-                        <h4 className='flex justify-center font-serif'>Style Selector</h4>
-                        <div className='grid grid-cols-2 gap-4'>
-                            <button className='col-span-1'>test1</button>
-                            <button className='col-span-1'>test2</button>
-                            <button className='col-span-1'>test3</button>
-                            <button className='col-span-1'>test4</button>
-                        </div>
-                    </div>
-                </div>)
-            }
-            
+        <div >
+            <div className='container flex'>
+                <img src={props.imgUrl} width={300} height={300}/>
+                <div>
+                    <input className='bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500'
+                        type='text' placeholder='target item, e.g. cloth' onChange={handleTextChange} />
+                    <button onClick={handlePrompt}>enter prompt</button>
+                </div>
+            </div>
+            <div className='container flex'>
+                <button>test</button>
+            </div>
         </div>
     );
 }

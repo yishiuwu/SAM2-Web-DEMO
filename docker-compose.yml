@@ -13,6 +13,13 @@ services:
       - NEXT_PUBLIC_API_URL=http://127.0.0.1:5000  # Point frontend to the backend container
     networks:
       - app-network
+    develop:
+      watch:
+        - path: ./frontend/package.json
+          action: rebuild
+        - path: ./frontend
+          target: /src
+          action: rebuild
 
   backend:
     build:
