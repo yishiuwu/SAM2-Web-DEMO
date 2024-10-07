@@ -3,6 +3,7 @@ from flask_cors import CORS, cross_origin
 # from flask_socketio import SocketIO
 from flask_redis import FlaskRedis
 import os
+from style import SamStyler, resize_image
 
 app = Flask(__name__)
 
@@ -51,6 +52,7 @@ def upload_image():
 
         if file:
             file_path = os.path.join(UPLOAD_FOLDER, file.filename)
+            file = resize_image(file)
             file.save(file_path)
             # session['image_path'] = file_path # uncomment this line would cause cors error. reason not found yet
             return jsonify({'message': 'File successfully uploaded', 'file_path': file_path})
@@ -70,6 +72,7 @@ def text_prompt():
     text = request.values['prompt']
 
     if text:
+        SamStyler()
         # do some prompt operation and save mask data
 
         return jsonify({'message': 'Prompt successfully received', 'prompt': text})

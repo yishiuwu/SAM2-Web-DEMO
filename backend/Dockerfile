@@ -30,6 +30,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     unzip \
     zsh stow subversion fasd \
     redis-server \
+    libgl1-mesa-glx \
+    python3-opencv \
     && rm -rf /var/lib/apt/lists/*
 
 # RUN pip uninstall -y xgboost && DS_BUILD_UTILS=1 DS_BUILD_FUSED_LAMB=1 pip install deepspeed==0.7.7
@@ -50,6 +52,8 @@ RUN pip install autodistill-grounded-sam-2
 
 # Install FlashAttention
 RUN pip install flash-attn==2.6.3
+
+RUN pip install pillow
 
 # Prevents Python from writing pyc files.
 ENV PYTHONDONTWRITEBYTECODE=1

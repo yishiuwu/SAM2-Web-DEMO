@@ -32,6 +32,14 @@ services:
       - ./backend:/app
     environment:
       - FLASK_ENV=development
+      - NVIDIA_VISIBLE_DEVICES=all  # 使用所有可用 GPU
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility  # 啟用計算和實用工具功能
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+    # runtime: nvidia  # 告知 Docker 使用 NVIDIA runtime
     networks:
       - app-network
   redis:
