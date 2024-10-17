@@ -47,13 +47,16 @@ RUN pip install transformers==4.25.1 datasets==2.8.0 pytorch-lightning==1.8.6 tr
 # For MLPerf
 RUN pip install git+https://github.com/mlcommons/logging.git@2.1.0
 
+# install SAM2
+RUN pip install 'git+https://github.com/facebookresearch/sam2.git'
+
 # install autodistill grounded sam 2 (sam 2 extension)
-RUN pip install autodistill-grounded-sam-2
+# RUN pip install autodistill-grounded-sam-2
 
 # Install FlashAttention
 RUN pip install flash-attn==2.6.3
 
-RUN pip install pillow
+RUN pip install pillow opencv-python
 
 # Prevents Python from writing pyc files.
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -83,6 +86,8 @@ ARG UID=10001
 RUN --mount=type=cache,target=/root/.cache/pip \
     --mount=type=bind,source=requirements.txt,target=requirements.txt \
     python -m pip install -r requirements.txt
+
+RUN pip install --upgrade numpy==1.26.0
 
 # Switch to the non-privileged user to run the application.
 # USER appuser

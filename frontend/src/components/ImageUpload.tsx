@@ -70,24 +70,27 @@ export default function ImageUpload() {
     };
 
     const handlePrompt = async () => {
-        if (!prompt) {
-            // setMessage('Please select a file.');
-            return;
-        }
+        // if (!prompt) {
+        //     // setMessage('Please select a file.');
+        //     return;
+        // }
         
-        const formData = new FormData();
-        formData.append('prompt', prompt);
+        // const formData = new FormData();
+        // formData.append('prompt', prompt);
 
         try {
-            const response = await fetch(APP_URL + '/api/prompt', {
+            // const response = await fetch(APP_URL + '/api/prompt', {
+            //     method: 'POST',
+            //     body: formData,
+            // });
+            const response = await fetch(APP_URL + '/api/generate_mask', {
                 method: 'POST',
-                body: formData,
             });
 
             const result = await response.json();
             if (response.ok) {
                 console.log(result.message);
-                console.log(result.prompt);
+                // console.log(result.prompt);
             } 
             else {
                 console.log(result.error || 'Error uploading file');

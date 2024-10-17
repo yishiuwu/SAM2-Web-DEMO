@@ -3,7 +3,10 @@ from flask_cors import CORS, cross_origin
 # from flask_socketio import SocketIO
 from flask_redis import FlaskRedis
 import os
-from style import SamStyler, resize_image
+# from style import SamStyler, resize_image
+import image_segment
+import torch
+import io
 
 app = Flask(__name__)
 
@@ -13,7 +16,7 @@ app = Flask(__name__)
 secret_key = os.urandom(24).hex()
 # app.secret_key = os.getenv('SECRET_KEY', default='BAD_SECRET_KEY')
 app.secret_key = secret_key
-print(f"secret key is: {app.secret_key}")
+# print(f"secret key is: {app.secret_key}")
 
 # Configure Redis for storing the session data on the server-side
 app.config['SESSION_TYPE'] = 'redis'
@@ -26,8 +29,12 @@ app.config['REDIS_URL'] = 'redis://127.0.0.1:6379'
 UPLOAD_FOLDER = '/uploads'
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
-
+# Create a directory to save sam embeds
+EMBED_FOLDER = '/embeds'
+if not os.path.exists(EMBED_FOLDER):
+    os.makedirs(EMBED_FOLDER)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['EMBED_FOLDER'] = EMBED_FOLDER
 
 app.config.from_object(__name__)
 # socketio = SocketIO(app, cors_allowed_origins='*')
@@ -38,6 +45,19 @@ redis.set('test', 0)
 
 # Create and initialize the Flask-Session object AFTER `app` has been configured
 # server_session = Session(app)
+
+def serialize_embedding(embedding):
+    byte_stream = io.BytesIO()
+    torch.save(embedding, byte_stream)  # Save embedding to buffer
+    byte_stream.seek(0)
+    redis.set('predictor', byte_stream.getvalue())
+    # return 
+
+def deserialize_embedding():
+    stored_embedding = redis.get('predictor')
+    byte_stream = io.BytesIO(stored_embedding)
+    byte_stream.seek(0)
+    return torch.load(byte_stream)
 
 @app.route('/api/upload_image', methods=['POST', 'GET'])
 # @cross_origin(origin='http://localhost:3000', supports_credentials= True)
@@ -52,17 +72,32 @@ def upload_image():
 
         if file:
             file_path = os.path.join(UPLOAD_FOLDER, file.filename)
-            file = resize_image(file)
+            # file = resize_image(file)
             file.save(file_path)
-            # session['image_path'] = file_path # uncomment this line would cause cors error. reason not found yet
+            embedding = image_segment.make_embedding(file_path)
+            serialize_embedding(embedding)
+            
+            # redis.set('embedding', embedding)
             return jsonify({'message': 'File successfully uploaded', 'file_path': file_path})
-    # session['test'] = "test session success!"
-    # print(server_session.)
     if request.method == 'GET':
         redis.incr('test')
         return f'<h1>/api/upload_image access seccess</h1>\
             <p>redis test: {redis.get("test")}</p>'
-    
+
+@app.route('/api/generate_mask', methods=['POST'])
+# @cross_origin(origin='http://localhost:3000', supports_credentials= True)
+def generate_mask():
+    if request.method == 'POST':
+        # retrieve embedding
+        embedding = deserialize_embedding()
+        
+        # generate mask
+        masks, scores, logits = image_segment.predict_mask(embedding, [[300,300]], [1])
+        print(masks[0].shape)
+
+        # redis.set('predictor', serialize_embedding(predictor))
+        return jsonify({'message': 'Successfully retrieve embedding'})
+
 # operation when receive text prompt
 @app.route('/api/prompt', methods=['POST'])
 def text_prompt():
@@ -72,7 +107,7 @@ def text_prompt():
     text = request.values['prompt']
 
     if text:
-        SamStyler()
+        # SamStyler()
         # do some prompt operation and save mask data
 
         return jsonify({'message': 'Prompt successfully received', 'prompt': text})
