@@ -102,6 +102,30 @@ export default function ImageUpload() {
         }
     };
 
+    const handleImageClick = async (x: number, y:number) => {        
+        const formData = new FormData();
+        formData.append('point', `${x} ${y}`);
+
+        try {
+            const response = await fetch(APP_URL + '/api/generate_mask', {
+                method: 'POST',
+                body: formData,
+            });
+
+            const result = await response.json();
+            if (response.ok) {
+                console.log(result.message);
+                // console.log(result.prompt);
+            } 
+            else {
+                console.log(result.error || 'Error uploading file');
+            }
+        } catch (error) {
+            console.log(error);
+            // setMessage('Error connecting to the server');
+        }
+    }
+
     return (
         <div>
             {!imageSrc &&
@@ -114,7 +138,7 @@ export default function ImageUpload() {
                         {/* <div className='h-[75vh] flex justify-center items-center mb-4'>
                             <img src={imageSrc} className='max-h-full max-w-full object-contain p-2'/>
                         </div> */}
-                        <MyImage image_src={imageSrc} handle_click={()=>{}}></MyImage>
+                        <MyImage image_src={imageSrc} handle_click={handleImageClick}></MyImage>
                         <div className='flex flex-row h-20 p-4'>
                             <input className='flex-auto mr-4 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500'
                                 type='text' placeholder='target item, e.g. cloth' onChange={handleTextChange} />

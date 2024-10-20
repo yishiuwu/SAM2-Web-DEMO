@@ -59,6 +59,17 @@ def deserialize_embedding():
     byte_stream.seek(0)
     return torch.load(byte_stream)
 
+def retrieve_points():
+    points = redis.get('points')
+    if (points is None):
+        return []
+    points = eval(points)
+    print(points)
+    return points
+
+def save_points(points):
+    redis.set('points', points.__str__())
+
 @app.route('/api/upload_image', methods=['POST', 'GET'])
 # @cross_origin(origin='http://localhost:3000', supports_credentials= True)
 def upload_image():
@@ -88,12 +99,20 @@ def upload_image():
 # @cross_origin(origin='http://localhost:3000', supports_credentials= True)
 def generate_mask():
     if request.method == 'POST':
+        if 'point' not in request.values:
+            return jsonify({'error': 'No given point'})
+        point = request.values['point']
+        point = point.split(' ')
+        point = [float(i) for i in point]
+        print(point)
         # retrieve embedding
         embedding = deserialize_embedding()
-        
+        points = retrieve_points()
+        points.append(point)
+        save_points(points)
         # generate mask
-        masks, scores, logits = image_segment.predict_mask(embedding, [[300,300]], [1])
-        print(masks[0].shape)
+        masks, scores, logits = image_segment.predict_mask(embedding, points, [1 for i in range(len(points))])
+
 
         # redis.set('predictor', serialize_embedding(predictor))
         return jsonify({'message': 'Successfully retrieve embedding'})
