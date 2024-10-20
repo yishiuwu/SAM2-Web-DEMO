@@ -54,7 +54,7 @@ RUN pip install 'git+https://github.com/facebookresearch/sam2.git'
 # RUN pip install autodistill-grounded-sam-2
 
 # Install FlashAttention
-RUN pip install flash-attn==2.6.3
+# RUN pip install flash-attn==2.6.3
 
 RUN pip install pillow opencv-python
 
@@ -65,6 +65,9 @@ ENV PYTHONDONTWRITEBYTECODE=1
 # the application crashes without emitting any logs due to buffering.
 ENV PYTHONUNBUFFERED=1
 
+# RUN mkdir -p /app && \
+#     wget https://dl.fbaipublicfiles.com/segment_anything_2/092824/sam2.1_hiera_base_plus.pt && \
+#     mv sam2.1_hiera_base_plus.pt /app
 WORKDIR /app
 
 # Create a non-privileged user that the app will run under.

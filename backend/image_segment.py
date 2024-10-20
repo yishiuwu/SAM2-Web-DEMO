@@ -12,8 +12,10 @@ model_cfg = "configs/sam2.1/sam2.1_hiera_b+.yaml"
 device = torch.device("cuda")
 
 sam2_model = build_sam2(model_cfg, sam2_checkpoint, device=device)
+# sam2_model = ...
 
 predictor = SAM2ImagePredictor(sam2_model)
+# predictor = ...
 
 
 def show_mask(mask, ax, random_color=False, borders = True):

@@ -5,6 +5,7 @@ import PromptPlaceholder from './PromptPlaceholder';
 import getConfig from 'next/config';
 import ImageEditor from './ImageEditor';
 import UploadFileButton from './UploadFileButton';
+import MyImage from './MyImage';
 
 const APP_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -110,9 +111,10 @@ export default function ImageUpload() {
             {imageSrc &&
                 (<div className='grid grid-cols-4 h-screen'>
                     <div className='col-span-3 flex flex-col'>
-                        <div className='h-[75vh] flex justify-center items-center mb-4'>
+                        {/* <div className='h-[75vh] flex justify-center items-center mb-4'>
                             <img src={imageSrc} className='max-h-full max-w-full object-contain p-2'/>
-                        </div>
+                        </div> */}
+                        <MyImage image_src={imageSrc} handle_click={()=>{}}></MyImage>
                         <div className='flex flex-row h-20 p-4'>
                             <input className='flex-auto mr-4 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500'
                                 type='text' placeholder='target item, e.g. cloth' onChange={handleTextChange} />

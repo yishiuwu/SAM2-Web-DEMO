@@ -17,8 +17,8 @@ export default function MyImage(props:ImageProps) {
     }
 
     return (
-        <div className='h-[75vh] flex justify-center items-center mb-4'>
-            <img src={props.image_src} onClick={handleClick} className='max-h-full max-w-full object-contain p-2'/>
+        <div className='h-[75vh] flex justify-center items-center mb-4 p-2'>
+            <img src={props.image_src} onClick={handleClick} className='max-h-full max-w-full object-contain'/>
         </div>
     )
     
