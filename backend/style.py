@@ -1,6 +1,6 @@
 import torch
 import cv2
-import Image
+from PIL import Image
 import numpy as np
 from torch.autograd import Variable
 from autodistill_grounded_sam_2 import GroundedSAM2
