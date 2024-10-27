@@ -3,10 +3,16 @@ from flask_cors import CORS, cross_origin
 # from flask_socketio import SocketIO
 from flask_redis import FlaskRedis
 import os
-# from style import SamStyler, resize_image
 import image_segment
 import torch
 import io
+import numpy as np
+import cv2
+
+from style import resize_image
+from tensor_image import tensor_load_rgbimage, preprocess_batch
+from model import Net
+from torch.autograd import Variable
 
 app = Flask(__name__)
 
@@ -30,11 +36,11 @@ UPLOAD_FOLDER = '/uploads'
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 # Create a directory to save sam embeds
-EMBED_FOLDER = '/embeds'
-if not os.path.exists(EMBED_FOLDER):
-    os.makedirs(EMBED_FOLDER)
+PROCESSED_FOLDER = '/processed'
+if not os.path.exists(PROCESSED_FOLDER):
+    os.makedirs(PROCESSED_FOLDER)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['EMBED_FOLDER'] = EMBED_FOLDER
+app.config['PROCESSED_FOLDER'] = PROCESSED_FOLDER
 
 app.config.from_object(__name__)
 # socketio = SocketIO(app, cors_allowed_origins='*')
@@ -70,6 +76,33 @@ def retrieve_points():
 def save_points(points):
     redis.set('points', points.__str__())
 
+def save_scale(widScale, heiScale):
+    redis.set('widScale', widScale)
+    redis.set('heiScale', heiScale)
+
+def retrieve_scale():
+    widScale = redis.get('widScale')
+    heiScale = redis.get('heiScale')
+    
+    # 轉換為浮點數，因為 redis.get() 返回的是 bytes
+    if widScale is not None and heiScale is not None:
+        widScale = float(widScale)
+        heiScale = float(heiScale)
+    
+    return widScale, heiScale
+
+def save_file(filename):
+    redis.set('filename', filename.__str__())
+
+def get_filename():
+    return redis.get('filename').decode('utf-8')
+
+def set_style(style):
+    redis.set('style', style.__str__())
+
+def get_style():
+    return redis.get('style').decode('utf-8')
+
 @app.route('/api/upload_image', methods=['POST', 'GET'])
 # @cross_origin(origin='http://localhost:3000', supports_credentials= True)
 def upload_image():
@@ -83,8 +116,16 @@ def upload_image():
 
         if file:
             file_path = os.path.join(UPLOAD_FOLDER, file.filename)
-            # file = resize_image(file)
+            save_file(filename = file.filename)
             file.save(file_path)
+            image = cv2.imread(file_path)
+            h, w, _ = image.shape
+            # resize_file_path = os.path.join(UPLOAD_FOLDER,"resize_"+file.filename)
+            # file.save(resize_file_path)
+            resize_image(file_path)
+            image = cv2.imread(file_path)
+            rh, rw, _ = image.shape
+            save_scale(rw/w, rh/h)
             embedding = image_segment.make_embedding(file_path)
             serialize_embedding(embedding)
             
@@ -104,6 +145,8 @@ def generate_mask():
         point = request.values['point']
         point = point.split(' ')
         point = [float(i) for i in point]
+        widScale, heiScale = retrieve_scale()
+        # point = [(float(point[0]) * widScale, float(point[1]) * heiScale)]
         print(point)
         # retrieve embedding
         embedding = deserialize_embedding()
@@ -116,6 +159,92 @@ def generate_mask():
 
         # redis.set('predictor', serialize_embedding(predictor))
         return jsonify({'message': 'Successfully retrieve embedding'})
+
+@app.route('/api/apply_style', methods=['POST'])
+def apply_style():
+    try:
+        data = request.json
+        style_image = data.get('style_image')
+
+        if not style_image:
+            return jsonify({"error": "No style image provided"}), 400
+
+        # 根據 style_image 處理不同的風格邏輯
+        if style_image == 'test1':
+            # 應用 test1 風格的處理
+            # set_style('style1')
+            style_img_path = './image/style1.jpg'
+            style_applied = "Applied style test1"
+        elif style_image == 'test2':
+            # 應用 test2 風格的處理
+            # set_style('style2')
+            style_img_path = './image/style2.jpg'
+            style_applied = "Applied style test2"
+        elif style_image == 'test3':
+            # 應用 test3 風格的處理
+            # set_style('style3')
+            style_img_path = './image/style3.jpg'
+            style_applied = "Applied style test3"
+        elif style_image == 'test4':
+            # 應用 test4 風格的處理
+            # set_style('styl4')
+            style_img_path = './image/style4.jpg'
+            style_applied = "Applied style test4"
+        else:
+            return jsonify({"error": "Invalid style selected"}), 400
+        
+        resize_file_path = os.path.join(UPLOAD_FOLDER, get_filename())
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        content_image = tensor_load_rgbimage(resize_file_path, size=512, keep_asp=True).unsqueeze(0).to(device)
+
+        resize_height = content_image.shape[2]  # 高度為 content_image 的高度
+        resize_width = content_image.shape[3]  
+
+        # style_img_path = os.path.join("./image" + get_style())
+        style_image = tensor_load_rgbimage(style_img_path, size=512).unsqueeze(0).to(device)
+        style_image = preprocess_batch(style_image)
+
+        # Style transfer process
+        style_v = Variable(style_image)
+        content_image_v = Variable(preprocess_batch(content_image))
+        style_model.setTarget(style_v)
+        output = style_model(content_image_v)
+
+        # Format styled image
+        styled_image = output.data[0].cpu().numpy()
+        styled_image = styled_image.transpose(1, 2, 0)
+        styled_image = cv2.resize(styled_image, (content_image.shape[3], content_image.shape[2]))
+
+
+        embedding = deserialize_embedding()
+        points = retrieve_points()
+        masks, scores, logits = image_segment.predict_mask(embedding, points, [1 for i in range(len(points))])
+
+        mask = np.any(masks[0], axis=0)
+        # Convert mask to 3D for combining with styled image
+        mask_3d = np.stack([mask] * 3, axis=-1)
+
+        print(f"mask shape: {mask_3d.shape}")
+
+        original_image = cv2.imread(resize_file_path)
+
+        print(f"original image shape: {original_image.shape}")
+
+        print(f"style image shape: {styled_image.shape}")
+        print(f"content image shape: {content_image.shape}")
+
+        # Combine the mask and styled image with alpha blending
+        combined_image = original_image * (1 - mask_3d) + styled_image * mask_3d
+        # 保存並返回合併的圖片結果
+        file_path = os.path.join(UPLOAD_FOLDER, "processed" + get_filename())
+        cv2.imwrite(file_path, combined_image)
+
+        # 假設這裡處理了圖像風格轉換並返回結果
+        # return jsonify({"message": style_applied}), 200
+        return jsonify({'message': 'File successfully combined', 'file_path': file_path})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 # operation when receive text prompt
 @app.route('/api/prompt', methods=['POST'])
@@ -136,4 +265,16 @@ def serve_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 if __name__ == "__main__":
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # 初始化模型
+    style_model = Net(ngf=128).to(device)
+    # 加載預訓練模型的字典
+    model_dict = torch.load('21styles.model', map_location=device)
+    # 創建副本並刪除 'running_mean' 和 'running_var'
+    model_dict_clone = model_dict.copy()
+    for key in list(model_dict_clone.keys()):
+        if key.endswith(('running_mean', 'running_var')):
+            del model_dict[key]
+    style_model.load_state_dict(model_dict, strict=False)
+
     app.run(host="0.0.0.0", port=5000, debug=True)
