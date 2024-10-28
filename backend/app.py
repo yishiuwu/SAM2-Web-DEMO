@@ -231,12 +231,6 @@ def apply_style():
         points = retrieve_points()
         masks, scores, logits = image_segment.predict_mask(embedding, points, [1 for i in range(len(points))])
 
-        mask = np.any(masks[0], axis=0)
-        # Convert mask to 3D for combining with styled image
-        mask_3d = np.stack([mask] * 3, axis=-1)
-
-        print(f"mask shape: {mask_3d.shape}, {masks[0].shape}")
-
         original_image = cv2.imread(resize_file_path)
 
         print(f"original image shape: {original_image.shape}")
@@ -244,9 +238,9 @@ def apply_style():
         print(f"style image shape: {styled_image.shape}")
         print(f"content image shape: {content_image.shape}")
 
-        # Combine the mask and styled image with alpha blending
         combined_image = original_image.copy()
-        combined_image[masks[0]!=0,:] = styled_image[masks[0]!=0,:]
+        combined_image = np.where(masks[0][..., None] != 0, styled_image, original_image)
+        # combined_image[masks[0]!=0,:] = styled_image[masks[0]!=0,:]
         # combined_image = original_image * (1 - masks[0]) + styled_image * masks[0]
         # combined_image = cv2.addWeighted(combined_image, 0.3, original_image, 0.7, 0, combined_image)
         # 保存並返回合併的圖片結果
