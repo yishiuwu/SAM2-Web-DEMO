@@ -247,8 +247,9 @@ def apply_style():
         # Combine the mask and styled image with alpha blending
         combined_image = original_image.copy()
         combined_image[masks[0]!=0,:] = styled_image[masks[0]!=0,:]
+        combined_image = cv2.addWeighted(combined_image, 0.5, original_image, 0.5, 0, combined_image)
+        
         # combined_image = original_image * (1 - masks[0]) + styled_image * masks[0]
-        # combined_image = cv2.addWeighted(combined_image, 0.3, original_image, 0.7, 0, combined_image)
         # 保存並返回合併的圖片結果
         file_path = os.path.join(UPLOAD_FOLDER, "processed" + get_filename())
         cv2.imwrite(file_path, combined_image)

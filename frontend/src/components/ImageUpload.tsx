@@ -1,11 +1,8 @@
 "use client"
-import { Input } from 'postcss';
-import { ChangeEvent, MouseEventHandler, useRef, useState } from 'react';
-import PromptPlaceholder from './PromptPlaceholder';
-import getConfig from 'next/config';
-import ImageEditor from './ImageEditor';
+import { ChangeEvent, MouseEvent, useState } from 'react';
 import UploadFileButton from './UploadFileButton';
 import MyImage from './MyImage';
+import SegmentSetting from './SegmentSetting';
 
 const APP_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -17,6 +14,8 @@ export default function ImageUpload() {
 
     const [selectedStyle, setSelectedStyle] = useState('');
     const [styledImageSrc, setStyledImageSrc] = useState('');
+
+    const [maskLabel, setMaskLabel] = useState(1);
 
     // const hiddenFileInput = useRef(InputEvent);
 
@@ -151,6 +150,12 @@ export default function ImageUpload() {
         }
     };
 
+    const handlePointLabel = (label:number)=>{
+        console.log(label);
+        
+        setMaskLabel(label);
+    }
+
     return (
         <div>
             {!imageSrc &&
@@ -185,6 +190,11 @@ export default function ImageUpload() {
                             <button className='col-span-1' onClick={() => handleStyleClick('test2')}>test2</button>
                             <button className='col-span-1' onClick={() => handleStyleClick('test3')}>test3</button>
                             <button className='col-span-1' onClick={() => handleStyleClick('test4')}>test4</button>
+                        </div>
+                        <h4 className='flex justify-center'>Mask input</h4>
+                        <div className='grid'>
+                            {/* mask label */}
+                            <SegmentSetting handlePointLabel={handlePointLabel} handelClear={()=>{}}></SegmentSetting>
                         </div>
                     </div>
                 </div>)
