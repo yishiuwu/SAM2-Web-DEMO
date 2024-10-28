@@ -129,7 +129,7 @@ export default function ImageUpload() {
         }
     }
 
-    const handleStyleClick = async (style) => {
+    const handleStyleClick = async (style:string) => {
         setSelectedStyle(style);  // 更新狀態，顯示選擇的style
         
         try {
@@ -175,7 +175,7 @@ export default function ImageUpload() {
                             </div>
                         </div>
                         <div className='col-span-3 flex flex-col'>
-                            <MyImage image_src={styledImageSrc}></MyImage>
+                            <MyImage image_src={styledImageSrc} handle_click={()=>{}}></MyImage>
                         </div>
                     </div>
                     <div className='flex flex-col col-span-1 bg-gray-200 dark:bg-gray-800 ml-3'>

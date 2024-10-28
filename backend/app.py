@@ -9,7 +9,7 @@ import io
 import numpy as np
 import cv2
 
-from style import resize_image
+from style import resize_image, style_image
 from tensor_image import tensor_load_rgbimage, preprocess_batch
 from model import Net
 from torch.autograd import Variable
@@ -39,8 +39,13 @@ if not os.path.exists(UPLOAD_FOLDER):
 PROCESSED_FOLDER = '/processed'
 if not os.path.exists(PROCESSED_FOLDER):
     os.makedirs(PROCESSED_FOLDER)
+# Create a directory to save sam embeds
+EMBEDDINGS_FOLDER = '/embedings'
+if not os.path.exists(EMBEDDINGS_FOLDER):
+    os.makedirs(EMBEDDINGS_FOLDER)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['PROCESSED_FOLDER'] = PROCESSED_FOLDER
+app.config['PROCESSED_FOLDER'] = EMBEDDINGS_FOLDER
 
 app.config.from_object(__name__)
 # socketio = SocketIO(app, cors_allowed_origins='*')
@@ -54,16 +59,22 @@ redis.set('test', 0)
 
 def serialize_embedding(embedding):
     byte_stream = io.BytesIO()
-    torch.save(embedding, byte_stream)  # Save embedding to buffer
-    byte_stream.seek(0)
-    redis.set('predictor', byte_stream.getvalue())
+    # torch.save(embedding, byte_stream)  # Save embedding to buffer
+    # print( EMBEDDINGS_FOLDER+get_filename())
+    torch.save(embedding, EMBEDDINGS_FOLDER + '/test.pt')  # Save embedding to buffer
+    # byte_stream.seek(0)
+    # redis.set('predictor', byte_stream.getvalue())
+    redis.set('predictor', EMBEDDINGS_FOLDER + '/test.pt')
     # return 
 
 def deserialize_embedding():
-    stored_embedding = redis.get('predictor')
-    byte_stream = io.BytesIO(stored_embedding)
-    byte_stream.seek(0)
-    return torch.load(byte_stream)
+    stored_embedding = redis.get('predictor').decode('utf-8')
+    # byte_stream = io.BytesIO(stored_embedding)
+    # byte_stream.seek(0)
+    # return torch.load(byte_stream)
+    print(stored_embedding)
+    print(stored_embedding.__str__())
+    return torch.load(stored_embedding)
 
 def retrieve_points():
     points = redis.get('points')
@@ -129,7 +140,6 @@ def upload_image():
             embedding = image_segment.make_embedding(file_path)
             serialize_embedding(embedding)
             
-            # redis.set('embedding', embedding)
             return jsonify({'message': 'File successfully uploaded', 'file_path': file_path})
     if request.method == 'GET':
         redis.incr('test')
@@ -155,7 +165,6 @@ def generate_mask():
         save_points(points)
         # generate mask
         masks, scores, logits = image_segment.predict_mask(embedding, points, [1 for i in range(len(points))])
-
 
         # redis.set('predictor', serialize_embedding(predictor))
         return jsonify({'message': 'Successfully retrieve embedding'})
@@ -194,6 +203,8 @@ def apply_style():
             return jsonify({"error": "Invalid style selected"}), 400
         
         resize_file_path = os.path.join(UPLOAD_FOLDER, get_filename())
+        # style_image(resize_file_path, style_image)
+        
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         content_image = tensor_load_rgbimage(resize_file_path, size=512, keep_asp=True).unsqueeze(0).to(device)
 
@@ -224,7 +235,7 @@ def apply_style():
         # Convert mask to 3D for combining with styled image
         mask_3d = np.stack([mask] * 3, axis=-1)
 
-        print(f"mask shape: {mask_3d.shape}")
+        print(f"mask shape: {mask_3d.shape}, {masks[0].shape}")
 
         original_image = cv2.imread(resize_file_path)
 
@@ -234,7 +245,10 @@ def apply_style():
         print(f"content image shape: {content_image.shape}")
 
         # Combine the mask and styled image with alpha blending
-        combined_image = original_image * (1 - mask_3d) + styled_image * mask_3d
+        combined_image = original_image.copy()
+        combined_image[masks[0]!=0,:] = styled_image[masks[0]!=0,:]
+        # combined_image = original_image * (1 - masks[0]) + styled_image * masks[0]
+        # combined_image = cv2.addWeighted(combined_image, 0.3, original_image, 0.7, 0, combined_image)
         # 保存並返回合併的圖片結果
         file_path = os.path.join(UPLOAD_FOLDER, "processed" + get_filename())
         cv2.imwrite(file_path, combined_image)

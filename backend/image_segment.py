@@ -2,6 +2,7 @@ import os
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
+import cv2
 from PIL import Image
 from sam2.build_sam import build_sam2
 from sam2.sam2_image_predictor import SAM2ImagePredictor
@@ -72,13 +73,16 @@ def make_embedding(image_path):
         "_is_image_set": predictor._is_image_set,
         "_orig_hw": predictor._orig_hw,
         "_is_batch": predictor._is_batch,
-        }
+        "model": predictor.model,
+        # "_transforms": predictor._transforms,
+        "mask_threshold": predictor.mask_threshold,
+    }
     # torch.save(save_data, f'{image_path}.pth')
     # predictor.save_image_embedding(f'{image_path}.pth')
 
     return save_data
 
-def predict_mask(embedding, input_point, input_label):
+def predict_image_mask(embedding, input_point, input_label):
     input_point = np.array(input_point)
     input_label = np.array(input_label)
     # predictor.load_image_embedding(embedding)
@@ -99,3 +103,34 @@ def predict_mask(embedding, input_point, input_label):
     logits = logits[sorted_ind]
     return masks, scores, logits
 
+def predict_mask(embedding, input_point, input_label):
+    input_point = np.array(input_point)
+    input_label = np.array(input_label)
+    # predictor.load_image_embedding(embedding)
+    # loaded_data = torch.load(embedding)
+    predictor._features = embedding["_features"]
+    predictor._is_image_set = embedding["_is_image_set"]
+    predictor._orig_hw = embedding["_orig_hw"]
+    predictor._is_batch = embedding["_is_batch"]
+    predictor.model = embedding["model"]
+    # predictor._transforms = embedding["_transforms"]
+    predictor.mask_threshold = embedding["mask_threshold"]
+
+    masks, scores, logits = predictor.predict(
+        point_coords=input_point,
+        point_labels=input_label,
+        multimask_output=True,
+    )
+    sorted_ind = np.argsort(scores)[::-1]
+    masks = masks[sorted_ind]
+    scores = scores[sorted_ind]
+    logits = logits[sorted_ind]
+    return masks, scores, logits
+
+def showmask2img(mask, image):
+    masked_img = image.copy()
+    masked_img[(mask!=0)] = [0, 255, 0]
+
+    masked_img_w = cv2.addWeighted(masked_img, 0.3, image, 0.7, 0, masked_img)
+
+    return masked_img_w
