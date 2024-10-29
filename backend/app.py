@@ -72,8 +72,6 @@ def deserialize_embedding():
     # byte_stream = io.BytesIO(stored_embedding)
     # byte_stream.seek(0)
     # return torch.load(byte_stream)
-    print(stored_embedding)
-    print(stored_embedding.__str__())
     return torch.load(stored_embedding)
 
 def retrieve_points():
@@ -81,11 +79,21 @@ def retrieve_points():
     if (points is None):
         return []
     points = eval(points)
-    print(points)
+    # print(points)
     return points
 
 def save_points(points):
     redis.set('points', points.__str__())
+
+def retrieve_labels():
+    labels = redis.get('labels')
+    if (labels is None):
+        return []
+    labels = eval(labels)
+    return labels
+
+def save_labels(labels):
+    redis.set('labels', labels.__str__())
 
 def save_scale(widScale, heiScale):
     redis.set('widScale', widScale)
@@ -113,6 +121,26 @@ def set_style(style):
 
 def get_style():
     return redis.get('style').decode('utf-8')
+
+def save_nparray(key, arr):
+    arr_dtype = bytearray(str(arr.dtype), 'utf-8')
+    arr_shape = bytearray(','.join([str(a) for a in arr.shape]), 'utf-8')
+    sep = bytearray('|', 'utf-8')
+    arr_bytes = arr.ravel().tobytes()
+    ser_arr = arr_dtype + sep + arr_shape + sep + arr_bytes
+    print(ser_arr)
+    # redis.set(key, )
+
+def retrieve_nparray(key):
+    # serialized_arr = redis.get(key)
+    # sep = '|'.encode('utf-8')
+    # i_0 = serialized_arr.find(sep)
+    # i_1 = serialized_arr.find(sep, i_0 + 1)
+    # arr_dtype = serialized_arr[:i_0].decode('utf-8')
+    # arr_shape = tuple([int(a) for a in serialized_arr[i_0 + 1:i_1].decode('utf-8').split(',')])
+    # arr_str = serialized_arr[i_1 + 1:]
+    # arr = np.frombuffer(arr_str, dtype = arr_dtype).reshape(arr_shape)
+    return 
 
 @app.route('/api/upload_image', methods=['POST', 'GET'])
 # @cross_origin(origin='http://localhost:3000', supports_credentials= True)
@@ -147,26 +175,43 @@ def upload_image():
             <p>redis test: {redis.get("test")}</p>'
 
 @app.route('/api/generate_mask', methods=['POST'])
-# @cross_origin(origin='http://localhost:3000', supports_credentials= True)
 def generate_mask():
     if request.method == 'POST':
         if 'point' not in request.values:
             return jsonify({'error': 'No given point'})
+        if 'label' not in request.values:
+            return jsonify({'error': 'No given label'})
+        
         point = request.values['point']
         point = point.split(' ')
         point = [float(i) for i in point]
+        label = int(request.values['label'])
         widScale, heiScale = retrieve_scale()
         # point = [(float(point[0]) * widScale, float(point[1]) * heiScale)]
-        print(point)
+        # print(point)
         # retrieve embedding
         embedding = deserialize_embedding()
         points = retrieve_points()
         points.append(point)
         save_points(points)
-        # generate mask
-        masks, scores, logits = image_segment.predict_mask(embedding, points, [1 for i in range(len(points))])
+        labels = retrieve_labels()
+        labels.append(label)
+        save_labels(labels)
 
+        # generate mask
+        masks, scores, logits = image_segment.predict_mask(embedding, points, [0 for i in range(len(points))])
+        # save_nparray('logits', logits)
+        # rlogits = retrieve_nparray('logits')
+        # print(logits.shape, rlogits.shape)
         # redis.set('predictor', serialize_embedding(predictor))
+        return jsonify({'message': 'Successfully retrieve embedding'})
+
+@app.route('/api/clear_mask', methods=['POST'])
+def clear_mask():
+    if request.method == 'POST':
+        save_points([])
+        # clear mask
+
         return jsonify({'message': 'Successfully retrieve embedding'})
 
 @app.route('/api/apply_style', methods=['POST'])
@@ -229,7 +274,8 @@ def apply_style():
 
         embedding = deserialize_embedding()
         points = retrieve_points()
-        masks, scores, logits = image_segment.predict_mask(embedding, points, [1 for i in range(len(points))])
+        labels = retrieve_labels()
+        masks, scores, logits = image_segment.predict_mask(embedding, points, labels)
 
         original_image = cv2.imread(resize_file_path)
 

@@ -107,6 +107,7 @@ export default function ImageUpload() {
     const handleImageClick = async (x: number, y:number) => {        
         const formData = new FormData();
         formData.append('point', `${x} ${y}`);
+        formData.append('label', `${maskLabel}`);
 
         try {
             const response = await fetch(APP_URL + '/api/generate_mask', {
@@ -151,8 +152,7 @@ export default function ImageUpload() {
     };
 
     const handlePointLabel = (label:number)=>{
-        console.log(label);
-        
+        // console.log(label);
         setMaskLabel(label);
     }
 
