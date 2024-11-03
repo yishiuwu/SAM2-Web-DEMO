@@ -21,7 +21,7 @@ export default function SegmentSetting(props:SSetProps) {
     };
 
     return (
-        <div className='grid'>
+        <div className='h-full p-4 flex flex-col space-y-4'>
             {/* input state (add or minuse) */}
             <div>
                 <div className="flex items-center ps-4 border border-gray-200 rounded dark:border-gray-700">

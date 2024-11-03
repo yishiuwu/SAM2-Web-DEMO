@@ -1,11 +1,13 @@
 "use client"
 
+import Image from "next/image";
 import { MouseEvent } from "react";
 
 interface ImageProps {
     image_src: string;
     handle_click: (x:number, y:number)=>void;
 }
+
 export default function MyImage(props:ImageProps) {
 
     const handleClick = (e:MouseEvent<HTMLImageElement>) => {
@@ -17,8 +19,8 @@ export default function MyImage(props:ImageProps) {
     }
 
     return (
-        <div className='h-[75vh] flex justify-center items-center mb-4 p-2'>
-            <img src={props.image_src} onClick={handleClick} className='max-h-full max-w-full object-contain'/>
+        <div className='justify-center items-center mb-4 p-2 h-full w-full'>
+            <img src={props.image_src} alt={props.image_src} onClick={handleClick} className='h-full w-full object-contain max-h-full'/>
         </div>
     )
     

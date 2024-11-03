@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify, send_from_directory, session
-from flask_cors import CORS, cross_origin
+from flask_cors import CORS
 # from flask_socketio import SocketIO
 from flask_redis import FlaskRedis
 import os
@@ -9,7 +9,7 @@ import io
 import numpy as np
 import cv2
 
-from style import resize_image, style_image
+from style import resize_image
 from tensor_image import tensor_load_rgbimage, preprocess_batch
 from model import Net
 from torch.autograd import Variable
@@ -35,7 +35,7 @@ app.config['REDIS_URL'] = 'redis://127.0.0.1:6379'
 UPLOAD_FOLDER = '/uploads'
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
-# Create a directory to save sam embeds
+# Create a directory to save processed images
 PROCESSED_FOLDER = '/processed'
 if not os.path.exists(PROCESSED_FOLDER):
     os.makedirs(PROCESSED_FOLDER)
@@ -43,9 +43,14 @@ if not os.path.exists(PROCESSED_FOLDER):
 EMBEDDINGS_FOLDER = '/embedings'
 if not os.path.exists(EMBEDDINGS_FOLDER):
     os.makedirs(EMBEDDINGS_FOLDER)
+# Create a directory to save style images
+STYLES_FOLDER = './image'
+if not os.path.exists(STYLES_FOLDER):
+    os.makedirs(STYLES_FOLDER)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['PROCESSED_FOLDER'] = PROCESSED_FOLDER
-app.config['PROCESSED_FOLDER'] = EMBEDDINGS_FOLDER
+app.config['EMBEDDINGS_FOLDER'] = EMBEDDINGS_FOLDER
+app.config['STYLES_FOLDER'] = STYLES_FOLDER
 
 app.config.from_object(__name__)
 # socketio = SocketIO(app, cors_allowed_origins='*')
@@ -56,6 +61,10 @@ redis.set('test', 0)
 
 # Create and initialize the Flask-Session object AFTER `app` has been configured
 # server_session = Session(app)
+
+@app.route('/image/<path:filename>')
+def serve_image(filename):
+    return send_from_directory('./image', filename)
 
 def serialize_embedding(embedding):
     byte_stream = io.BytesIO()
@@ -245,7 +254,8 @@ def apply_style():
             style_img_path = './image/style4.jpg'
             style_applied = "Applied style test4"
         else:
-            return jsonify({"error": "Invalid style selected"}), 400
+            # return jsonify({"error": "Invalid style selected"}), 400
+            style_img_path = './image' + style_image
         
         resize_file_path = os.path.join(UPLOAD_FOLDER, get_filename())
         # style_image(resize_file_path, style_image)

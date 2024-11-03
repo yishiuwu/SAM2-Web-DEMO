@@ -1,9 +1,5 @@
 "use client"
-import { Input } from 'postcss';
 import { ChangeEvent, createRef, MouseEventHandler, useRef, useState } from 'react';
-import PromptPlaceholder from './PromptPlaceholder';
-import getConfig from 'next/config';
-import ImageEditor from './ImageEditor';
 
 const APP_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -26,7 +22,7 @@ export default function UploadFileButton(props:UFBtnProps) {
 
 
     return (
-        <div>
+        <div className='flex items-center justify-center'>
             <button 
                 className="text-white bg-gradient-to-r from-cyan-500 to-blue-500 hover:bg-gradient-to-bl font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2"
                 onClick={handleClick}>
