@@ -63,8 +63,16 @@ redis.set('test', 0)
 # server_session = Session(app)
 
 @app.route('/image/<path:filename>')
-def serve_image(filename):
-    return send_from_directory('./image', filename)
+def serve_style(filename):
+    return send_from_directory(app.config['STYLES_FOLDER'], filename)
+
+@app.route('/uploads/<filename>')
+def serve_file(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
+@app.route('/processed/<filename>')
+def serve_processed(filename):
+    return send_from_directory(app.config['PROCESSED_FOLDER'], filename)
 
 def serialize_embedding(embedding):
     byte_stream = io.BytesIO()
@@ -180,6 +188,8 @@ def upload_image():
                 save_scale(rw/w, rh/h)
                 embedding = image_segment.make_embedding(file_path)
                 serialize_embedding(embedding)
+                save_points([])
+                save_labels([])
             
             return jsonify({'message': 'File successfully uploaded', 'file_path': file_path})
     if request.method == 'GET':
@@ -213,11 +223,15 @@ def generate_mask():
 
         # generate mask
         masks, scores, logits = image_segment.predict_mask(embedding, points, [0 for i in range(len(points))])
+
+        img = cv2.imread(os.path.join(UPLOAD_FOLDER, get_filename()))
+        masked_img_pth = os.path.join(PROCESSED_FOLDER, 'masked_'+get_filename())
+        cv2.imwrite(masked_img_pth, image_segment.showmask2img(masks[0], img, [0, 0, 255]))
         # save_nparray('logits', logits)
         # rlogits = retrieve_nparray('logits')
         # print(logits.shape, rlogits.shape)
         # redis.set('predictor', serialize_embedding(predictor))
-        return jsonify({'message': 'Successfully retrieve embedding'})
+        return jsonify({'message': 'Successfully retrieve embedding', 'masked_img_pth': masked_img_pth})
 
 @app.route('/api/clear_mask', methods=['POST'])
 def clear_mask():
@@ -329,9 +343,6 @@ def text_prompt():
 
         return jsonify({'message': 'Prompt successfully received', 'prompt': text})
 
-@app.route('/uploads/<filename>')
-def serve_file(filename):
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
