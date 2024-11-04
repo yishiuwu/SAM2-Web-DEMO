@@ -1,5 +1,5 @@
 "use client"
-import { ChangeEvent, MouseEvent, useState } from 'react';
+import { ChangeEvent, createRef, MouseEvent, useState } from 'react';
 import UploadFileButton from './UploadFileButton';
 import MyImage from './MyImage';
 import SegmentSetting from './SegmentSetting';
@@ -8,33 +8,20 @@ import StyleButton from './StyleButton';
 const APP_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default function ImageUpload() {
-    // const [image, setImage] = useState(File.prototype);
     const [imageSrc, setImageSrc] = useState('');
-    // const [message, setMessage] = useState('');
-    const [prompt, setPrompt] = useState('');
-
-    const [selectedStyle, setSelectedStyle] = useState('');
     const [styledImageSrc, setStyledImageSrc] = useState('');
-
     const [maskLabel, setMaskLabel] = useState(1);
-
-    // const hiddenFileInput = useRef(InputEvent);
-
-
-    const handleClick = () => {
-        // hiddenFileInput.current.click();
-    }
-
+    const [styleSrcs, setStyleSrcs] = useState(['/style1.jpg', '/style2.jpg', '/style3.jpg', '/style4.jpg']);
 
     const handleFileChange = (e:ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.item(0);
         if (file) {
             // setImage(file);
-            handleUpload(file);
+            handleUpload(file, false);
         }
     };
 
-    const handleUpload = async (image:File) => {
+    const handleUpload = async (image:File, isStyle:boolean) => {
         if (!image) {
             console.log('No file selected.');
             return;
@@ -42,6 +29,7 @@ export default function ImageUpload() {
         
         const formData = new FormData();
         formData.append('image', image);
+        formData.append('isStyle', `${isStyle}`);
 
         try {
             const response = await fetch(APP_URL + '/api/upload_image', {
@@ -56,7 +44,15 @@ export default function ImageUpload() {
             const result = await response.json();
             if (response.ok) {
                 console.log('File uploaded successfully!');
-                setImageSrc(APP_URL + result.file_path);
+                if (!isStyle) {
+                    setImageSrc(APP_URL + result.file_path);
+                } else {
+                    setStyleSrcs([
+                        ...styleSrcs,
+                        `/${image.name}`
+                    ])
+                }
+        
             } 
             else {
                 console.log(result.error || 'Error uploading file');
@@ -65,43 +61,6 @@ export default function ImageUpload() {
             console.log(error);
             console.log(`Error connecting to the server: ${APP_URL}`);
             // console.log('Error connecting to the server');
-        }
-    };
-
-    const handleTextChange = (e:ChangeEvent<HTMLInputElement>) => {
-        const text = e.target.value;
-        setPrompt(text);
-    };
-
-    const handlePrompt = async () => {
-        // if (!prompt) {
-        //     // setMessage('Please select a file.');
-        //     return;
-        // }
-        
-        // const formData = new FormData();
-        // formData.append('prompt', prompt);
-
-        try {
-            // const response = await fetch(APP_URL + '/api/prompt', {
-            //     method: 'POST',
-            //     body: formData,
-            // });
-            const response = await fetch(APP_URL + '/api/generate_mask', {
-                method: 'POST',
-            });
-
-            const result = await response.json();
-            if (response.ok) {
-                console.log(result.message);
-                // console.log(result.prompt);
-            } 
-            else {
-                console.log(result.error || 'Error uploading file');
-            }
-        } catch (error) {
-            console.log(error);
-            // setMessage('Error connecting to the server');
         }
     };
 
@@ -152,11 +111,19 @@ export default function ImageUpload() {
         // }
     };
 
+    const handleStyleUpload = (e:ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.item(0);
+        if (file) {
+            handleUpload(file, true);
+        }
+    };
+
     const handlePointLabel = (label:number)=>{
         // console.log(label);
         setMaskLabel(label);
     }
 
+    const hiddenFileInput = createRef<HTMLInputElement>();
     return (
         <div>
                 <div className='h-screen flex flex-col'>
@@ -173,7 +140,7 @@ export default function ImageUpload() {
                         {/* Image 2 */}
                         <div className="w-1/2 p-2 justify-center items-center">
                             {!styledImageSrc && 
-                                (<p className='m-auto'>No style apply yet</p>)
+                                (<p className='self-center'>No style apply yet</p>)
                             }
                             {styledImageSrc && 
                                 (<MyImage image_src={styledImageSrc} handle_click={handleImageClick}></MyImage>)                            
@@ -186,10 +153,23 @@ export default function ImageUpload() {
                         <div className="flex-1 h-full  overflow-auto scrollbar-thin scrollbar-webkit dark:scrollbar-thin-dark dark:scrollbar-webkit-dark">
                             <h4 className='flex justify-center font-serif'>Style Selector</h4>
                             <div className="grid grid-cols-3 gap-4 p-4">
-                                <StyleButton src={'/style1.jpg'} callback={handleStyleClick} />
-                                <StyleButton src={'/style2.jpg'} callback={handleStyleClick} />
-                                <StyleButton src={'/style3.jpg'} callback={handleStyleClick} />
-                                <StyleButton src={'/style4.jpg'} callback={handleStyleClick} />
+                                {
+                                    styleSrcs.map((val, idx)=>
+                                        <StyleButton key={idx} src={val} callback={handleStyleClick} />
+                                    )
+                                }
+                                <div className='flex col-span-1 justify-center items-center'>
+                                    <button className="p-0 rounded-md overflow-hidden border-4 border-slate-500 w-20 h-20 justify-center items-center flex" onClick={()=>{hiddenFileInput.current?.click();}}>
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                                        </svg>
+                                    </button>
+                                    <input 
+                                        type="file" onChange={handleStyleUpload}
+                                        ref={hiddenFileInput} 
+                                        style={{display:'none'}} 
+                                    />      
+                                </div>
                                 {/* Add more style options as needed */}
                             </div>
                         </div>

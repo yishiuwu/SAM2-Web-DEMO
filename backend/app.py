@@ -162,20 +162,24 @@ def upload_image():
         if file.filename == '':
             return jsonify({'error': 'No selected file'}), 400
 
+        if 'isStyle' in request.values:
+            dest = UPLOAD_FOLDER if request.values['isStyle'] == 'false' else STYLES_FOLDER
+
         if file:
-            file_path = os.path.join(UPLOAD_FOLDER, file.filename)
-            save_file(filename = file.filename)
+            file_path = os.path.join(dest, file.filename)
             file.save(file_path)
-            image = cv2.imread(file_path)
-            h, w, _ = image.shape
-            # resize_file_path = os.path.join(UPLOAD_FOLDER,"resize_"+file.filename)
-            # file.save(resize_file_path)
-            resize_image(file_path)
-            image = cv2.imread(file_path)
-            rh, rw, _ = image.shape
-            save_scale(rw/w, rh/h)
-            embedding = image_segment.make_embedding(file_path)
-            serialize_embedding(embedding)
+            if dest == UPLOAD_FOLDER:
+                save_file(filename = file.filename)
+                image = cv2.imread(file_path)
+                h, w, _ = image.shape
+                # resize_file_path = os.path.join(UPLOAD_FOLDER,"resize_"+file.filename)
+                # file.save(resize_file_path)
+                resize_image(file_path)
+                image = cv2.imread(file_path)
+                rh, rw, _ = image.shape
+                save_scale(rw/w, rh/h)
+                embedding = image_segment.make_embedding(file_path)
+                serialize_embedding(embedding)
             
             return jsonify({'message': 'File successfully uploaded', 'file_path': file_path})
     if request.method == 'GET':
@@ -255,7 +259,7 @@ def apply_style():
             style_applied = "Applied style test4"
         else:
             # return jsonify({"error": "Invalid style selected"}), 400
-            style_img_path = './image' + style_image
+            style_img_path = STYLES_FOLDER + style_image
         
         resize_file_path = os.path.join(UPLOAD_FOLDER, get_filename())
         # style_image(resize_file_path, style_image)
@@ -290,8 +294,9 @@ def apply_style():
         original_image = cv2.imread(resize_file_path)
 
         print(f"original image shape: {original_image.shape}")
+        print(f"mask shape: {masks[0].shape}")
 
-        print(f"style image shape: {styled_image.shape}")
+        print(f"style image shape: {style_image.shape}")
         print(f"content image shape: {content_image.shape}")
 
         combined_image = original_image.copy()
@@ -307,6 +312,7 @@ def apply_style():
         return jsonify({'message': 'File successfully combined', 'file_path': file_path})
 
     except Exception as e:
+        print(e)
         return jsonify({"error": str(e)}), 500
 
 # operation when receive text prompt
