@@ -103,7 +103,7 @@ def predict_image_mask(embedding, input_point, input_label):
     logits = logits[sorted_ind]
     return masks, scores, logits
 
-def predict_mask(embedding, input_point, input_label, mask_input = []):
+def predict_mask(embedding, input_point, input_label, mask_input=[]):
     input_point = np.array(input_point)
     input_label = np.array(input_label)
     predictor._features = embedding["_features"]
@@ -114,20 +114,21 @@ def predict_mask(embedding, input_point, input_label, mask_input = []):
     # predictor._transforms = embedding["_transforms"]
     predictor.mask_threshold = embedding["mask_threshold"]
 
-    # if (mask_input):
-    #     masks, scores, logits = predictor.predict(
-    #         point_coords=input_point,
-    #         point_labels=input_label,
-    #         multimask_output=False,
-    #     )
-    # else:
+    if isinstance(mask_input, np.ndarray):
+        masks, scores, logits = predictor.predict(
+            point_coords=input_point,
+            point_labels=input_label,
+            mask_input = mask_input[None, :, :],
+            multimask_output=False,
+        )
+    else:
     # predictor.load_image_embedding(embedding)
     # loaded_data = torch.load(embedding)    
-    masks, scores, logits = predictor.predict(
-        point_coords=input_point,
-        point_labels=input_label,
-        multimask_output=True,
-    )
+        masks, scores, logits = predictor.predict(
+            point_coords=input_point,
+            point_labels=input_label,
+            multimask_output=True,
+        )
     sorted_ind = np.argsort(scores)[::-1]
     masks = masks[sorted_ind]
     scores = scores[sorted_ind]

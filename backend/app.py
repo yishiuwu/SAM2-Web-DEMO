@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_from_directory, session
+from flask import Flask, request, jsonify, send_from_directory, session, send_file, abort
 from flask_cors import CORS
 # from flask_socketio import SocketIO
 from flask_redis import FlaskRedis
@@ -8,6 +8,10 @@ import torch
 import io
 import numpy as np
 import cv2
+import pickle
+from io import BytesIO
+from PIL import Image
+import base64
 
 from style import resize_image
 from tensor_image import tensor_load_rgbimage, preprocess_batch
@@ -140,16 +144,19 @@ def get_style():
     return redis.get('style').decode('utf-8')
 
 def save_nparray(key, arr):
-    arr_dtype = bytearray(str(arr.dtype), 'utf-8')
-    arr_shape = bytearray(','.join([str(a) for a in arr.shape]), 'utf-8')
-    sep = bytearray('|', 'utf-8')
-    arr_bytes = arr.ravel().tobytes()
-    ser_arr = arr_dtype + sep + arr_shape + sep + arr_bytes
-    print(ser_arr)
+    arr_binary = pickle.dumps(arr)
+    redis.set(f'{key}', arr_binary)
+    # arr_dtype = bytearray(str(arr.dtype), 'utf-8')
+    # arr_shape = bytearray(','.join([str(a) for a in arr.shape]), 'utf-8')
+    # sep = bytearray('|', 'utf-8')
+    # arr_bytes = arr.ravel().tobytes()
+    # ser_arr = arr_dtype + sep + arr_shape + sep + arr_bytes
+    # print(ser_arr)
     # redis.set(key, )
 
 def retrieve_nparray(key):
-    # serialized_arr = redis.get(key)
+    stored_data = redis.get(key)
+    serialized_arr = pickle.loads(stored_data)
     # sep = '|'.encode('utf-8')
     # i_0 = serialized_arr.find(sep)
     # i_1 = serialized_arr.find(sep, i_0 + 1)
@@ -157,7 +164,7 @@ def retrieve_nparray(key):
     # arr_shape = tuple([int(a) for a in serialized_arr[i_0 + 1:i_1].decode('utf-8').split(',')])
     # arr_str = serialized_arr[i_1 + 1:]
     # arr = np.frombuffer(arr_str, dtype = arr_dtype).reshape(arr_shape)
-    return 
+    return serialized_arr
 
 @app.route('/api/upload_image', methods=['POST', 'GET'])
 # @cross_origin(origin='http://localhost:3000', supports_credentials= True)
@@ -190,6 +197,7 @@ def upload_image():
                 serialize_embedding(embedding)
                 save_points([])
                 save_labels([])
+                save_nparray('logits',[])
             
             return jsonify({'message': 'File successfully uploaded', 'file_path': file_path})
     if request.method == 'GET':
@@ -220,6 +228,8 @@ def generate_mask():
         labels = retrieve_labels()
         labels.append(label)
         save_labels(labels)
+        print(f"label:{labels}")
+        print(f"point:{points}")
 
         # generate mask
         masks, scores, logits = image_segment.predict_mask(embedding, points, [0 for i in range(len(points))])
@@ -227,9 +237,12 @@ def generate_mask():
         img = cv2.imread(os.path.join(UPLOAD_FOLDER, get_filename()))
         masked_img_pth = os.path.join(PROCESSED_FOLDER, 'masked_'+get_filename())
         cv2.imwrite(masked_img_pth, image_segment.showmask2img(masks[0], img, [0, 0, 255]))
-        # save_nparray('logits', logits)
-        # rlogits = retrieve_nparray('logits')
+        logits = logits[np.argmax(scores), :, :]
+        save_nparray('logits', logits)
+        rlogits = retrieve_nparray('logits')
         # print(logits.shape, rlogits.shape)
+        # print(f'logits:{logits}')
+        # print(f'rlogits{rlogits}')
         # redis.set('predictor', serialize_embedding(predictor))
         return jsonify({'message': 'Successfully retrieve embedding', 'masked_img_pth': masked_img_pth})
 
@@ -303,7 +316,14 @@ def apply_style():
         embedding = deserialize_embedding()
         points = retrieve_points()
         labels = retrieve_labels()
-        masks, scores, logits = image_segment.predict_mask(embedding, points, labels)
+        rlogits = retrieve_nparray('logits')
+        
+        if isinstance(rlogits, np.ndarray):
+            masks, scores, logits = image_segment.predict_mask(embedding, points, labels, mask_input=rlogits)
+        else:
+            masks, scores, logits = image_segment.predict_mask(embedding, points, labels)
+
+        save_nparray('logits', logits)
 
         original_image = cv2.imread(resize_file_path)
 
@@ -343,6 +363,47 @@ def text_prompt():
 
         return jsonify({'message': 'Prompt successfully received', 'prompt': text})
 
+
+# 示例 mask 圖片數據
+MASK_IMAGES = {
+    1: np.random.rand(256, 256, 3) * 255,
+    2: np.random.rand(256, 256, 3) * 255,
+    3: np.random.rand(256, 256, 3) * 255,
+    4: np.random.rand(256, 256, 3) * 255,
+}
+
+# 獲取指定 mask 圖片和 ID
+@app.route('/api/get_mask_image/<int:mask_id>', methods=['GET'])
+def get_mask_image(mask_id):
+    if mask_id in MASK_IMAGES:
+        # 將 mask 數據轉換為圖片
+        mask_image = Image.fromarray(MASK_IMAGES[mask_id].astype('uint8'))
+        img_io = BytesIO()
+        mask_image.save(img_io, 'PNG')
+        img_io.seek(0)
+        # 將圖片轉為 Base64 字符串
+        img_base64 = base64.b64encode(img_io.getvalue()).decode('utf-8')
+        
+        # 將圖片和 ID 一起返回
+        return jsonify({
+            "maskId": mask_id,
+            "image": img_base64
+        }), 200
+    else:
+        return abort(404, description="Mask not found")
+
+# 路由 2: 選擇當前正在編輯的 mask
+@app.route('/api/select_mask', methods=['POST'])
+def select_mask():
+    global current_selected_mask
+    data = request.json
+    mask_id = data.get('maskId')
+
+    if mask_id in MASK_IMAGES:
+        current_selected_mask = mask_id  # 更新當前選中的 mask ID
+        return jsonify({"message": f"Mask {mask_id} selected for editing."}), 200
+    else:
+        return jsonify({"error": "Invalid mask ID"}), 400
 
 if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

@@ -4,6 +4,7 @@ import UploadFileButton from './UploadFileButton';
 import MyImage from './MyImage';
 import SegmentSetting from './SegmentSetting';
 import StyleButton from './StyleButton';
+import MaskButton from './MaskButton';
 
 const APP_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -12,6 +13,7 @@ export default function ImageUpload() {
     const [styledImageSrc, setStyledImageSrc] = useState('');
     const [maskLabel, setMaskLabel] = useState(1);
     const [styleSrcs, setStyleSrcs] = useState(['/style1.jpg', '/style2.jpg', '/style3.jpg', '/style4.jpg']);
+    const [maskSrcs, setMaskSrcs] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isStyling, setIsStyling] = useState(false);
 
@@ -135,9 +137,29 @@ export default function ImageUpload() {
     };
 
     const handlePointLabel = (label:number)=>{
-        // console.log(label);
         setMaskLabel(label);
     }
+
+    // const saveMask = async () =>{
+    //     const response = await fetch(APP_URL + '/api/get_mask', {
+    //         method: 'GET',
+    //     });
+    //     const result = await response.json();
+    //     if (response.ok) {
+    //         console.log('Get Mask successfully!');
+    //         setMaskSrcs([
+    //             ...maskSrcs,
+    //             `/${image.name}`
+    //         ])
+    //     }
+    //     else {
+    //         console.log(result.error || 'Error uploading file');
+    //     } catch (error) {
+    //         console.log(error);
+    //         console.log(`Error connecting to the server: ${APP_URL}`);
+    //         // console.log('Error connecting to the server');
+    //     }
+    // };
 
     const hiddenFileInput = createRef<HTMLInputElement>();
     return (
@@ -199,6 +221,15 @@ export default function ImageUpload() {
                     <div className='flex w-25 px-2 items-center'>
                         <UploadFileButton handleFileChange={handleFileChange} />
                     </div>
+
+                    {/* <button onClick={saveMask} className="mask-fetch-button">
+                                Fetch Mask Image
+                            </button>
+                            {
+                                maskSrcs.map((val, idx)=>
+                                    <MaskButton key={idx} src={val} />
+                                )
+                            } */}
                 </div>
                 
                 
