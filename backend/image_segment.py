@@ -135,9 +135,9 @@ def predict_mask(embedding, input_point, input_label, mask_input=[]):
     logits = logits[sorted_ind]
     return masks, scores, logits
 
-def showmask2img(mask, image):
+def showmask2img(mask, image, color=[0, 255, 0]):
     masked_img = image.copy()
-    masked_img[(mask!=0)] = [0, 255, 0]
+    masked_img[(mask!=0)] = color
 
     masked_img_w = cv2.addWeighted(masked_img, 0.3, image, 0.7, 0, masked_img)
 
