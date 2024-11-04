@@ -4,6 +4,7 @@ import UploadFileButton from './UploadFileButton';
 import MyImage from './MyImage';
 import SegmentSetting from './SegmentSetting';
 import StyleButton from './StyleButton';
+import MaskButton from './MaskButton';
 
 const APP_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -12,6 +13,7 @@ export default function ImageUpload() {
     const [styledImageSrc, setStyledImageSrc] = useState('');
     const [maskLabel, setMaskLabel] = useState(1);
     const [styleSrcs, setStyleSrcs] = useState(['/style1.jpg', '/style2.jpg', '/style3.jpg', '/style4.jpg']);
+    const [maskSrcs, setMaskSrcs] = useState([]);
 
     const handleFileChange = (e:ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.item(0);
@@ -90,25 +92,7 @@ export default function ImageUpload() {
     }
 
     const handleStyleClick = async (src:string) => {
-        // setSelectedStyle(style);  // 更新狀態，顯示選擇的style
         setStyledImageSrc(src);
-        
-        // try {
-        //     const response = await fetch(APP_URL + '/api/apply_style', {
-        //         method: 'POST',
-        //         headers: {
-        //             'Content-Type': 'application/json',
-        //         },
-        //         body: JSON.stringify({ 'style_image': style }),
-        //     });
-        //     const result = await response.json();
-        //     if (response.ok) {
-        //         // 在這裡處理後端的回應，例如顯示結果
-        //         console.log('Style applied:', result);
-        //     }
-        // } catch (error) {
-        //     console.error('Error applying style:', error);
-        // }
     };
 
     const handleStyleUpload = (e:ChangeEvent<HTMLInputElement>) => {
@@ -119,9 +103,29 @@ export default function ImageUpload() {
     };
 
     const handlePointLabel = (label:number)=>{
-        // console.log(label);
         setMaskLabel(label);
     }
+
+    // const saveMask = async () =>{
+    //     const response = await fetch(APP_URL + '/api/get_mask', {
+    //         method: 'GET',
+    //     });
+    //     const result = await response.json();
+    //     if (response.ok) {
+    //         console.log('Get Mask successfully!');
+    //         setMaskSrcs([
+    //             ...maskSrcs,
+    //             `/${image.name}`
+    //         ])
+    //     }
+    //     else {
+    //         console.log(result.error || 'Error uploading file');
+    //     } catch (error) {
+    //         console.log(error);
+    //         console.log(`Error connecting to the server: ${APP_URL}`);
+    //         // console.log('Error connecting to the server');
+    //     }
+    // };
 
     const hiddenFileInput = createRef<HTMLInputElement>();
     return (
@@ -179,13 +183,19 @@ export default function ImageUpload() {
                             <h4 className='flex justify-center'>Mask input</h4>
                             {/* mask label */}
                             <SegmentSetting handlePointLabel={handlePointLabel} handelClear={()=>{}}></SegmentSetting>
-                        </div>
-                        <div className='flex w-25 px-2 items-center'>
-                            <UploadFileButton handleFileChange={handleFileChange} />
+                            <div className='flex w-25 px-2 items-center'>
+                                <UploadFileButton handleFileChange={handleFileChange} />
+                            </div>
+                            {/* <button onClick={saveMask} className="mask-fetch-button">
+                                Fetch Mask Image
+                            </button>
+                            {
+                                maskSrcs.map((val, idx)=>
+                                    <MaskButton key={idx} src={val} />
+                                )
+                            } */}
                         </div>
                     </div>
-                    
-                    
                 </div>
             
             
