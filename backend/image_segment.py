@@ -7,8 +7,8 @@ from PIL import Image
 from sam2.build_sam import build_sam2
 from sam2.sam2_image_predictor import SAM2ImagePredictor
 
-sam2_checkpoint = "sam2.1_hiera_base_plus.pt"
-model_cfg = "configs/sam2.1/sam2.1_hiera_b+.yaml"
+sam2_checkpoint = "sam2.1_hiera_large.pt"
+model_cfg = "configs/sam2.1/sam2.1_hiera_l.yaml"
 
 device = torch.device("cuda")
 
