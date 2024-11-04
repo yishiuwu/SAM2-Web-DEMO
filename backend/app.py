@@ -179,7 +179,7 @@ def generate_mask():
         print(f"point:{points}")
 
         # generate mask
-        masks, scores, logits = image_segment.predict_mask(embedding, points, [0 for i in range(len(points))])
+        masks, scores, logits = image_segment.predict_mask(embedding, points, labels)
 
         img = cv2.imread(os.path.join(UPLOAD_FOLDER, get_filename()))
         masked_img_pth = os.path.join(PROCESSED_FOLDER, 'masked_'+get_filename())
