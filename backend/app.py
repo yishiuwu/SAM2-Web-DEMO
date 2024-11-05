@@ -142,7 +142,7 @@ def upload_image():
             file_path = os.path.join(dest, file.filename)
             file.save(file_path)
             if dest == UPLOAD_FOLDER:
-                save_file(filename = file.filename)
+                save_data('filename', file.filename)
                 resize_image(file_path)
                 embedding = image_segment.make_embedding(file_path)
                 serialize_embedding(embedding)
@@ -181,11 +181,12 @@ def generate_mask():
         # generate mask
         masks, scores, logits = image_segment.predict_mask(embedding, points, [0 for i in range(len(points))])
 
-        img = cv2.imread(os.path.join(UPLOAD_FOLDER, get_filename()))
+        img = cv2.imread(os.path.join(UPLOAD_FOLDER, get_data('filename')))
         masked_img_pth = os.path.join(PROCESSED_FOLDER, 'masked_'+get_filename())
         cv2.imwrite(masked_img_pth, image_segment.showmask2img(masks[0], img, [0, 0, 255]))
         logits = logits[np.argmax(scores), :, :]
         save_nparray('logits', logits)
+        save_nparray('mask', masks[0])
 
         return jsonify({'message': 'Successfully retrieve embedding', 'masked_img_pth': masked_img_pth})
 
@@ -264,6 +265,40 @@ def apply_style():
         cv2.imwrite(file_path, combined_image)
 
         return jsonify({'message': 'File successfully combined', 'file_path': file_path})
+
+    except Exception as e:
+        print(e)
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/save_mask', methods=['POST'])
+def save_mask():
+    try:
+        if redis.exists('maskId'):
+            maskId = int(get_data('maskId'))
+        else:
+            maskId = 0
+
+        mask = retrieve_nparray('mask')
+        save_nparray(f'mask{maskId}', mask)
+        save_data('maskId', maskId+1)
+        print(mask)
+        print(maskId)
+
+        return jsonify({'message': 'Mask successfully saved', 'maskId': maskId})
+
+    except Exception as e:
+        print(e)
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/select_mask', methods=['POST'])
+def select_mask():
+    try:
+        data = request.json
+        maskSelect = data.get('maskSelect')
+        save_data('maskSelect', maskSelect)
+
+        return jsonify({'message': 'Mask successfully selected'})
+
 
     except Exception as e:
         print(e)
