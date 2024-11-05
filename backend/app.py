@@ -9,9 +9,10 @@ import numpy as np
 import cv2
 import pickle
 from io import BytesIO
-from PIL import Image
-import base64
+# from PIL import Image
+# import base64
 
+from shutil import copy
 from style import resize_image
 from tensor_image import tensor_load_rgbimage, preprocess_batch
 from model import Net
@@ -46,7 +47,7 @@ EMBEDDINGS_FOLDER = '/embedings'
 if not os.path.exists(EMBEDDINGS_FOLDER):
     os.makedirs(EMBEDDINGS_FOLDER)
 # Create a directory to save style images
-STYLES_FOLDER = './image'
+STYLES_FOLDER = '/image'
 if not os.path.exists(STYLES_FOLDER):
     os.makedirs(STYLES_FOLDER)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -57,7 +58,6 @@ app.config['STYLES_FOLDER'] = STYLES_FOLDER
 app.config.from_object(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*", "supports_credentials": True}})
 redis = FlaskRedis(app)
-redis.set('test', 0)
 
 # Create and initialize the Flask-Session object AFTER `app` has been configured
 
@@ -175,27 +175,32 @@ def generate_mask():
         labels = retrieve_labels()
         labels.append(label)
         save_labels(labels)
-        print(f"label:{labels}")
-        print(f"point:{points}")
+        mask_input = retrieve_nparray('logits')
+        # print(f"label:{labels}")
+        # print(f"point:{points}")
 
         # generate mask
-        masks, scores, logits = image_segment.predict_mask(embedding, points, labels)
-
+        masks, _, logits = image_segment.predict_mask(embedding, points, labels, mask_input)
         img = cv2.imread(os.path.join(UPLOAD_FOLDER, get_filename()))
         masked_img_pth = os.path.join(PROCESSED_FOLDER, 'masked_'+get_filename())
-        cv2.imwrite(masked_img_pth, image_segment.showmask2img(masks[0], img, [0, 0, 255]))
-        logits = logits[np.argmax(scores), :, :]
+        cv2.imwrite(masked_img_pth, image_segment.showmask2img(masks, img, [0, 0, 255]))
+        # logit = logits[0, :, :]
         save_nparray('logits', logits)
-
+        save_nparray('masks', masks)
+        
         return jsonify({'message': 'Successfully retrieve embedding', 'masked_img_pth': masked_img_pth})
 
 @app.route('/api/clear_mask', methods=['POST'])
 def clear_mask():
     if request.method == 'POST':
         save_points([])
+        save_labels([])
+        save_nparray('logits', [])
         # clear mask
 
-        return jsonify({'message': 'Successfully retrieve embedding'})
+        # return cleard image
+        masked_img_pth = os.path.join(UPLOAD_FOLDER, get_filename())
+        return jsonify({'message': 'Successfully clear mask', 'masked_img_pth': masked_img_pth})
 
 @app.route('/api/apply_style', methods=['POST'])
 def apply_style():
@@ -206,21 +211,7 @@ def apply_style():
         if not style_image:
             return jsonify({"error": "No style image provided"}), 400
 
-        # 根據 style_image 處理不同的風格邏輯
-        if style_image == 'test1':
-            style_img_path = './image/style1.jpg'
-
-        elif style_image == 'test2':
-            style_img_path = './image/style2.jpg'
-
-        elif style_image == 'test3':
-            style_img_path = './image/style3.jpg'
-
-        elif style_image == 'test4':
-            style_img_path = './image/style4.jpg'
-
-        else:
-            style_img_path = STYLES_FOLDER + style_image
+        style_img_path = STYLES_FOLDER + style_image
         
         resize_file_path = os.path.join(UPLOAD_FOLDER, get_filename())
         # style_image(resize_file_path, style_image)
@@ -243,22 +234,11 @@ def apply_style():
         styled_image = styled_image.transpose(1, 2, 0)
         styled_image = cv2.resize(styled_image, (content_image.shape[3], content_image.shape[2]))
 
-
-        embedding = deserialize_embedding()
-        points = retrieve_points()
-        labels = retrieve_labels()
-        rlogits = retrieve_nparray('logits')
-        
-        if isinstance(rlogits, np.ndarray):
-            masks, scores, logits = image_segment.predict_mask(embedding, points, labels, mask_input=rlogits)
-        else:
-            masks, scores, logits = image_segment.predict_mask(embedding, points, labels)
-
-        save_nparray('logits', logits)
+        masks = retrieve_nparray('masks')
 
         original_image = cv2.imread(resize_file_path)
         combined_image = original_image.copy()
-        combined_image = np.where(masks[0][..., None] != 0, styled_image, original_image)
+        combined_image = np.where(masks[..., None] != 0, styled_image, original_image)
 
         file_path = os.path.join(UPLOAD_FOLDER, "processed" + get_filename())
         cv2.imwrite(file_path, combined_image)
@@ -281,5 +261,10 @@ if __name__ == "__main__":
         if key.endswith(('running_mean', 'running_var')):
             del model_dict[key]
     style_model.load_state_dict(model_dict, strict=False)
+
+    if len(os.listdir(STYLES_FOLDER)) == 0:
+        style_list = os.listdir('./image')
+        for s in style_list:
+            copy(os.path.join('./image', s), STYLES_FOLDER)
 
     app.run(host="0.0.0.0", port=5000, debug=True)

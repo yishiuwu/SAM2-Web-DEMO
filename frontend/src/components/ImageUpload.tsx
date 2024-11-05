@@ -140,6 +140,30 @@ export default function ImageUpload() {
         setMaskLabel(label);
     }
 
+    const handleClearMask = async ()=>{
+        try {
+            setIsLoading(true);
+            const response = await fetch(APP_URL + '/api/clear_mask', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            }).then((res)=>{
+                setIsLoading(false);
+                return res;
+            });
+            const result = await response.json();
+            if (response.ok) {
+                setImageSrc(`${APP_URL}${result.masked_img_pth}?timestamp=${new Date().getTime()}}`);
+                // // 在這裡處理後端的回應，例如顯示結果
+                // setStyledImageSrc(src);
+                // console.log('Style applied:', result);
+            }
+        } catch (error) {
+            console.error('Error applying style:', error);
+        }
+    }
+
     // const saveMask = async () =>{
     //     const response = await fetch(APP_URL + '/api/get_mask', {
     //         method: 'GET',
@@ -216,7 +240,7 @@ export default function ImageUpload() {
                     <div className='flex-1 p-2 h-full overflow-auto scrollbar-thin scrollbar-webkit dark:scrollbar-thin-dark dark:scrollbar-webkit-dark'>
                         <h4 className='flex justify-center'>Mask input</h4>
                         {/* mask label */}
-                        <SegmentSetting handlePointLabel={handlePointLabel} handelClear={()=>{}}></SegmentSetting>
+                        <SegmentSetting handlePointLabel={handlePointLabel} handelClear={handleClearMask}></SegmentSetting>
                     </div>
                     <div className='flex w-25 px-2 items-center'>
                         <UploadFileButton handleFileChange={handleFileChange} />

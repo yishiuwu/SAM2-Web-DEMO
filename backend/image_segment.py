@@ -7,8 +7,11 @@ from PIL import Image
 from sam2.build_sam import build_sam2
 from sam2.sam2_image_predictor import SAM2ImagePredictor
 
-sam2_checkpoint = "sam2.1_hiera_large.pt"
-model_cfg = "configs/sam2.1/sam2.1_hiera_l.yaml"
+# sam2_checkpoint = "sam2.1_hiera_large.pt"
+# model_cfg = "configs/sam2.1/sam2.1_hiera_l.yaml"
+
+sam2_checkpoint = "sam2.1_hiera_base_plus.pt"
+model_cfg = "configs/sam2.1/sam2.1_hiera_b+.yaml"
 
 device = torch.device("cuda")
 
@@ -121,6 +124,9 @@ def predict_mask(embedding, input_point, input_label, mask_input=[]):
             mask_input = mask_input[None, :, :],
             multimask_output=False,
         )
+        masks = masks[0]
+        scores = scores[0]
+        logits = logits[0]
     else:
     # predictor.load_image_embedding(embedding)
     # loaded_data = torch.load(embedding)    
@@ -129,10 +135,10 @@ def predict_mask(embedding, input_point, input_label, mask_input=[]):
             point_labels=input_label,
             multimask_output=True,
         )
-    sorted_ind = np.argsort(scores)[::-1]
-    masks = masks[sorted_ind]
-    scores = scores[sorted_ind]
-    logits = logits[sorted_ind]
+        sorted_ind = np.argsort(scores)[::-1]
+        masks = masks[np.argmax(scores)]
+        scores = scores[np.argmax(scores)]
+        logits = logits[np.argmax(scores)]
     return masks, scores, logits
 
 def showmask2img(mask, image, color=[0, 255, 0]):

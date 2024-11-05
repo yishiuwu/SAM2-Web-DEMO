@@ -34,7 +34,7 @@ export default function SegmentSetting(props:SSetProps) {
                 </div>
             </div>
             <div>
-                <button onClick={()=>{}}>Clear</button> 
+                <button onClick={props.handelClear}>Clear</button> 
             </div>
                 
         </div>
