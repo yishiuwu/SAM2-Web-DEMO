@@ -164,26 +164,28 @@ export default function ImageUpload() {
         }
     }
 
-    // const saveMask = async () =>{
-    //     const response = await fetch(APP_URL + '/api/get_mask', {
-    //         method: 'GET',
-    //     });
-    //     const result = await response.json();
-    //     if (response.ok) {
-    //         console.log('Get Mask successfully!');
-    //         setMaskSrcs([
-    //             ...maskSrcs,
-    //             `/${image.name}`
-    //         ])
-    //     }
-    //     else {
-    //         console.log(result.error || 'Error uploading file');
-    //     } catch (error) {
-    //         console.log(error);
-    //         console.log(`Error connecting to the server: ${APP_URL}`);
-    //         // console.log('Error connecting to the server');
-    //     }
-    // };
+    const saveMask = async () =>{
+        try {
+            const response = await fetch(APP_URL + '/api/save_mask', {
+                method: 'POST',
+            });
+            const result = await response.json();
+            if (response.ok) {
+                console.log('Save Mask successfully!');
+                setMaskSrcs([
+                    ...maskSrcs,
+                    result.maslId
+                ])
+            }
+            else {
+                console.log(result.error || 'Error uploading file');
+            }
+        } catch (error) {
+            console.log(error);
+            console.log(`Error connecting to the server: ${APP_URL}`);
+            // console.log('Error connecting to the server');
+        }
+    };
 
     const hiddenFileInput = createRef<HTMLInputElement>();
     return (
@@ -241,19 +243,19 @@ export default function ImageUpload() {
                         <h4 className='flex justify-center'>Mask input</h4>
                         {/* mask label */}
                         <SegmentSetting handlePointLabel={handlePointLabel} handelClear={handleClearMask}></SegmentSetting>
+                        <button onClick={saveMask} className="mask-fetch-button">
+                            Fetch Mask Image
+                        </button>
+                        {
+                            maskSrcs.map((val, idx)=>
+                                <MaskButton key={idx} src={idx}>Mask {idx}</MaskButton>
+                            )
+                        }
                     </div>
                     <div className='flex w-25 px-2 items-center'>
                         <UploadFileButton handleFileChange={handleFileChange} />
                     </div>
 
-                    {/* <button onClick={saveMask} className="mask-fetch-button">
-                                Fetch Mask Image
-                            </button>
-                            {
-                                maskSrcs.map((val, idx)=>
-                                    <MaskButton key={idx} src={val} />
-                                )
-                            } */}
                 </div>
                 
                 

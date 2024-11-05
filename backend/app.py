@@ -139,6 +139,7 @@ def upload_image():
             dest = UPLOAD_FOLDER if request.values['isStyle'] == 'false' else STYLES_FOLDER
 
         if file:
+            redis.flushall()
             file_path = os.path.join(dest, file.filename)
             file.save(file_path)
             if dest == UPLOAD_FOLDER:
@@ -146,7 +147,7 @@ def upload_image():
                 resize_image(file_path)
                 embedding = image_segment.make_embedding(file_path)
                 serialize_embedding(embedding)
-                save_points([])
+                save_nparray('points',[])
                 save_labels([])
                 save_nparray('logits',[])
             
@@ -169,9 +170,9 @@ def generate_mask():
         point = [float(i) for i in point]
         label = int(request.values['label'])
         embedding = deserialize_embedding()
-        points = retrieve_points()
+        points = retrieve_nparray('points')
         points.append(point)
-        save_points(points)
+        save_nparray('points', points)
         labels = retrieve_labels()
         labels.append(label)
         save_labels(labels)
@@ -193,7 +194,7 @@ def generate_mask():
 @app.route('/api/clear_mask', methods=['POST'])
 def clear_mask():
     if request.method == 'POST':
-        save_points([])
+        save_nparray('points',[])
         save_labels([])
         save_nparray('logits', [])
         # clear mask
@@ -205,6 +206,7 @@ def clear_mask():
 @app.route('/api/apply_style', methods=['POST'])
 def apply_style():
     try:
+        print('in apply style')
         data = request.json
         style_image = data.get('style_image')
 
@@ -212,9 +214,16 @@ def apply_style():
             return jsonify({"error": "No style image provided"}), 400
 
         style_img_path = STYLES_FOLDER + style_image
-        
-        resize_file_path = os.path.join(UPLOAD_FOLDER, get_filename())
+
+        if not redis.exists('style_path'):
+            resize_file_path = os.path.join(UPLOAD_FOLDER, get_filename())
+        else:
+            print('this?')
+            resize_file_path = get_data('style_path')
+            
         # style_image(resize_file_path, style_image)
+
+        print('start using model')
         
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         content_image = tensor_load_rgbimage(resize_file_path, size=512, keep_asp=True).unsqueeze(0).to(device)
@@ -233,17 +242,74 @@ def apply_style():
         styled_image = output.data[0].cpu().numpy()
         styled_image = styled_image.transpose(1, 2, 0)
         styled_image = cv2.resize(styled_image, (content_image.shape[3], content_image.shape[2]))
-
+        print('yes mask')
         masks = retrieve_nparray('masks')
 
+        print('not mask')
+
+        # if redis.exists('style_path'):
+        #     print('hi')
+        #     path = get_data('style_path')
+        #     original_image = cv2.imread(path)
+        # else:
+        #     original_image = cv2.imread(resize_file_path)
+
         original_image = cv2.imread(resize_file_path)
+            
         combined_image = original_image.copy()
         combined_image = np.where(masks[..., None] != 0, styled_image, original_image)
+        if redis.exists('maskId'):
+            print('this!')
+            maskId = get_data('maskId')
+        else:
+            maskId = 0
+        print('wait what?!')
 
-        file_path = os.path.join(UPLOAD_FOLDER, "processed" + get_filename())
+        file_path = os.path.join(UPLOAD_FOLDER, f"{maskId}processed" + get_filename())
+
+        save_data('style_path', file_path)
         cv2.imwrite(file_path, combined_image)
 
         return jsonify({'message': 'File successfully combined', 'file_path': file_path})
+
+    except Exception as e:
+        print(e)
+        return jsonify({"error": str(e)}), 500
+    
+
+@app.route('/api/save_mask', methods=['POST'])
+def save_mask():
+    try:
+        if redis.exists('maskId'):
+            maskId = int(get_data('maskId'))
+        else:
+            maskId = 0
+
+        masks = retrieve_nparray('masks')
+        save_nparray(f'masks{maskId}', masks)
+        save_data('maskId', maskId+1)
+        print(maskId)
+
+        return jsonify({'message': f'Mask successfully saved {maskId}', 'maskId': f'{maskId}'})
+
+    except Exception as e:
+        print(e)
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/select_mask', methods=['POST'])
+def select_mask():
+    try:
+        data = request.json
+        maskSelect = data.get('id')
+        path = get_data('style_path')
+        image = cv2.imread(path)
+        print(maskSelect)
+        save_data('maskSelect', maskSelect)
+        current = retrieve_nparray(f'masks{maskSelect}')
+        save_nparray('masks', current)
+
+        return jsonify({'message': 'Mask successfully selected'})
+
 
     except Exception as e:
         print(e)

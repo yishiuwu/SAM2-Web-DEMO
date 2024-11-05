@@ -15,24 +15,6 @@ export default function StyleButton(props: SBtnProps) {
 
     const handleStyleClick = () => {
         props.callback(props.src);
-        // try {
-        //     const response = await fetch(APP_URL + '/api/apply_style', {
-        //         method: 'POST',
-        //         headers: {
-        //             'Content-Type': 'application/json',
-        //         },
-        //         body: JSON.stringify({ 'style_image': props.src }),
-        //     });
-        //     const result = await response.json();
-        //     if (response.ok) {
-        //         // setStyledImageSrc(`${APP_URL}${result.file_path}?timestamp=${new Date().getTime()}}`);
-        //         // // 在這裡處理後端的回應，例如顯示結果
-        //         props.callback(`${APP_URL}${result.file_path}?timestamp=${new Date().getTime()}}`);
-        //         console.log('Style applied:', result);
-        //     }
-        // } catch (error) {
-        //     console.error('Error applying style:', error);
-        // }
     };
 
     return (
