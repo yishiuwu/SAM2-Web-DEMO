@@ -13,28 +13,30 @@ export default function SegmentSetting(props:SSetProps) {
     // const [image, setImage] = useState(File.prototype);
     // const [label, setLabel] = useState(Number);
 
-    const [selectedLabel, setSelectedLabel] = useState<'add' | 'minus'>('add');
+    const [selectedLabel, setSelectedLabel] = useState('add');
 
-    const handlePointLabel = (e: ChangeEvent<HTMLInputElement>) => {
+    const handlePointLabel = (e: MouseEvent<HTMLButtonElement>) => {
         const label = e.currentTarget.id === "add" ? 1 : 0;
+        setSelectedLabel(e.currentTarget.id);
         props.handlePointLabel(label);
     };
 
     return (
-        <div className='h-full p-4 flex flex-col space-y-4'>
-            {/* input state (add or minuse) */}
-            <div className='flex-col'>
-                <div className="flex col-span-1 items-center ps-4 border border-gray-200 rounded dark:border-gray-700">
-                    <input defaultChecked onChange={handlePointLabel} id="add" type="radio" value="" name="input-format" className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"/>
-                    <label htmlFor="add" className="py-4 ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">Add</label>
-                </div>
-                <div className="flex col-span-1 items-center ps-4 border border-gray-200 rounded dark:border-gray-700">
-                    <input onChange={handlePointLabel} id="minus" type="radio" value="" name="input-format" className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"/>
-                    <label htmlFor="minus" className="py-4 ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">Minus</label>
-                </div>
+        <div className='p-4 flex flex-row space-x-4 items-center justify-items-center'>
+            {/* input state (add or minus) */}
+            <div className='inline-flex rounded-md shadow-sm' role='group'>
+                <button type="button" onClick={handlePointLabel} id='add' 
+                className={`px-4 py-2 text-sm font-medium text-gray-900 bg-white border ${selectedLabel==='add'?"border-blue-500 dark:border-blue-500":"border-gray-200 dark:border-gray-700 border-r-0 "} rounded-s-lg hover:bg-gray-100 hover:text-blue-700 dark:bg-gray-800 dark:text-white dark:hover:text-white dark:hover:bg-gray-700 `}>
+                    Add
+                </button>
+                <button type="button" onClick={handlePointLabel} id='minus' 
+                className={`px-4 py-2 text-sm font-medium text-gray-900 bg-white border ${selectedLabel==='minus'?"border-blue-500 dark:border-blue-500":"border-gray-200 dark:border-gray-700 border-l-0 "} rounded-e-lg hover:bg-gray-100 hover:text-blue-700 dark:bg-gray-800 dark:text-white dark:hover:text-white dark:hover:bg-gray-700 `}>
+                    Minus
+                </button>
             </div>
-            <div>
-                <button onClick={props.handelClear}>Clear</button> 
+            <div className='inline-flex rounded-md shadow-sm p-4'>
+                <button className='px-4 py-2 text-sm font-medium text-gray-900 bg-white border rounded border-gray-200 dark:border-gray-700 hover:bg-gray-100 hover:text-blue-700 dark:bg-gray-800 dark:text-white dark:hover:text-white dark:hover:bg-gray-700' 
+                onClick={props.handelClear}>Clear</button> 
             </div>
                 
         </div>
