@@ -139,7 +139,6 @@ def upload_image():
             dest = UPLOAD_FOLDER if request.values['isStyle'] == 'false' else STYLES_FOLDER
 
         if file:
-            redis.flushall()
             file_path = os.path.join(dest, file.filename)
             file.save(file_path)
             if dest == UPLOAD_FOLDER:
@@ -149,6 +148,7 @@ def upload_image():
                 serialize_embedding(embedding)
                 save_nparray('points',[])
                 save_labels([])
+                redis.delete('style_path')
                 save_nparray('logits',[])
             
             return jsonify({'message': 'File successfully uploaded', 'file_path': file_path})
@@ -206,7 +206,6 @@ def clear_mask():
 @app.route('/api/apply_style', methods=['POST'])
 def apply_style():
     try:
-        print('in apply style')
         data = request.json
         style_image = data.get('style_image')
 
@@ -215,15 +214,10 @@ def apply_style():
 
         style_img_path = STYLES_FOLDER + style_image
 
-        if not redis.exists('style_path'):
-            resize_file_path = os.path.join(UPLOAD_FOLDER, get_filename())
-        else:
-            print('this?')
-            resize_file_path = get_data('style_path')
-            
-        # style_image(resize_file_path, style_image)
-
-        print('start using model')
+        # if not redis.exists('style_path'):
+        resize_file_path = os.path.join(UPLOAD_FOLDER, get_filename())
+        # else:
+        #     resize_file_path = get_data('style_path')
         
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         content_image = tensor_load_rgbimage(resize_file_path, size=512, keep_asp=True).unsqueeze(0).to(device)
@@ -247,14 +241,13 @@ def apply_style():
 
         print('not mask')
 
-        # if redis.exists('style_path'):
-        #     print('hi')
-        #     path = get_data('style_path')
-        #     original_image = cv2.imread(path)
-        # else:
-        #     original_image = cv2.imread(resize_file_path)
+        if redis.exists('style_path'):
+            path = get_data('style_path')
+            original_image = cv2.imread(path)
+        else:
+            original_image = cv2.imread(resize_file_path)
 
-        original_image = cv2.imread(resize_file_path)
+        # original_image = cv2.imread(resize_file_path)
             
         combined_image = original_image.copy()
         combined_image = np.where(masks[..., None] != 0, styled_image, original_image)
