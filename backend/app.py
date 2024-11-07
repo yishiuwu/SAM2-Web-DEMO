@@ -148,6 +148,7 @@ def upload_image():
                 serialize_embedding(embedding)
                 save_nparray('points',[])
                 save_labels([])
+                redis.delete('maskId')
                 redis.delete('style_path')
                 save_nparray('logits',[])
             
@@ -177,15 +178,13 @@ def generate_mask():
         labels.append(label)
         save_labels(labels)
         mask_input = retrieve_nparray('logits')
-        # print(f"label:{labels}")
-        # print(f"point:{points}")
 
         # generate mask
         masks, _, logits = image_segment.predict_mask(embedding, points, labels, mask_input)
         img = cv2.imread(os.path.join(UPLOAD_FOLDER, get_filename()))
         masked_img_pth = os.path.join(PROCESSED_FOLDER, 'masked_'+get_filename())
         cv2.imwrite(masked_img_pth, image_segment.showmask2img(masks, img, [0, 0, 255]))
-        # logit = logits[0, :, :]
+
         save_nparray('logits', logits)
         save_nparray('masks', masks)
         
@@ -213,11 +212,7 @@ def apply_style():
             return jsonify({"error": "No style image provided"}), 400
 
         style_img_path = STYLES_FOLDER + style_image
-
-        # if not redis.exists('style_path'):
         resize_file_path = os.path.join(UPLOAD_FOLDER, get_filename())
-        # else:
-        #     resize_file_path = get_data('style_path')
         
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         content_image = tensor_load_rgbimage(resize_file_path, size=512, keep_asp=True).unsqueeze(0).to(device)
@@ -236,27 +231,20 @@ def apply_style():
         styled_image = output.data[0].cpu().numpy()
         styled_image = styled_image.transpose(1, 2, 0)
         styled_image = cv2.resize(styled_image, (content_image.shape[3], content_image.shape[2]))
-        print('yes mask')
         masks = retrieve_nparray('masks')
-
-        print('not mask')
 
         if redis.exists('style_path'):
             path = get_data('style_path')
             original_image = cv2.imread(path)
         else:
             original_image = cv2.imread(resize_file_path)
-
-        # original_image = cv2.imread(resize_file_path)
             
         combined_image = original_image.copy()
         combined_image = np.where(masks[..., None] != 0, styled_image, original_image)
         if redis.exists('maskId'):
-            print('this!')
             maskId = get_data('maskId')
         else:
             maskId = 0
-        print('wait what?!')
 
         file_path = os.path.join(UPLOAD_FOLDER, f"{maskId}processed" + get_filename())
 
@@ -281,7 +269,6 @@ def save_mask():
         masks = retrieve_nparray('masks')
         save_nparray(f'masks{maskId}', masks)
         save_data('maskId', maskId+1)
-        print(maskId)
 
         return jsonify({'message': f'Mask successfully saved {maskId}', 'maskId': f'{maskId}'})
 
@@ -294,9 +281,6 @@ def select_mask():
     try:
         data = request.json
         maskSelect = data.get('id')
-        path = get_data('style_path')
-        image = cv2.imread(path)
-        print(maskSelect)
         save_data('maskSelect', maskSelect)
         current = retrieve_nparray(f'masks{maskSelect}')
         save_nparray('masks', current)
